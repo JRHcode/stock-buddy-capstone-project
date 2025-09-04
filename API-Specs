@@ -1,0 +1,81 @@
+Stock Buddy - API Specs Rough Draft
+
+Main Route:
+
+API Endpoint = GET => `/`=> Landing Page
+Description: This endpoint serves the main landing page, which is the first thing any user
+sees. It provides options to log in or view the About page.
+Success Response:`200 OK` (Page rendered successfully)
+Error Response:`500 Internal Server Error` (If a server error occurs)
+
+Auth Routes:
+
+API Endpoint = GET => `/about`=> About Page
+Description: This endpoint serves the static About page content. No authentication is
+required.
+Success Response:
+Error Response:`200 OK` (About page content)`500 Internal Server Error`
+
+API Endpoint = GET => `/auth/signup`=> Sign Up Page
+Description: This endpoint serves the user registration form.
+Success Response:`200 OK` (Sign-up form page)
+Error Response:`500 Internal Server Error`
+
+API Endpoint = POST => `/auth/signup`=> Result
+Description: This endpoint processes the user registration. It expects`email`and`password` in the request body.
+Success Response:`201 Created`and REDIRECT to the user's Profile Page. A user session is created.
+Error Response:`400 Bad Request` (e.g., email already exists, password too weak, invalid email format). Returns error messages to display on the form.
+
+API Endpoint = GET => `/auth/login`=> Login Page
+Description: This endpoint serves the user login form.
+Success Response:`200 OK` (Login form page)
+Error Response:`500 Internal Server Error`
+
+API Endpoint = POST => `/auth/login`=> Result
+Description: This endpoint authenticates a user. It expects`email`and `password` in the request body.
+Success Response:`200 OK`and REDIRECT to the News Page (or Profile). A usersession is created.
+Error Response: `401 Unauthorized` (Invalid email or password). Returns error messagesto display on the form.
+
+API Endpoint = POST => `/auth/logout`=> Result
+Description: This endpoint destroys the user's session, logging them out.
+Success Response:`200 OK`and REDIRECT to the Landing Page (`/`).
+Error Response:`500 Internal Server Error`
+Profile & Watchlist Routes:
+API Endpoint = GET => `/profile`=> Profile Page
+Description: This endpoint serves the user's profile page, which includes their created watchlists.
+Success Response: `200 OK` (Profile page with user's watchlists)
+Error Response: `302 Found` and REDIRECT to `/auth/login` if the user is not authenticated. `500 Internal Server Error` for server issues.
+
+API Endpoint = POST => `/profile/watchlists`=> Result
+Description: This endpoint allows a user to create a new, empty watchlist. It expects a `name` for the watchlist in the request body.
+Success Response: `201 Created` (Returns the newly created watchlist object). The front-end can then update the UI.
+Error Response: `401 Unauthorized` (If not logged in, redirect to login).
+(e.g., no name provided, watchlist name already exists for this user). `400 Bad Request` `500 Internal Server Error`.
+
+API Endpoint = GET => `/profile/watchlists/:watchlistId` => Result
+Description: This endpoint fetches the details of a specific user watchlist, including the list of stock tickers (e.g., AAPL, TSLA) in it.
+Success Response: `200 OK` (Returns the watchlist object with an array of stock symbols).
+Error Response: `401 Unauthorized` (If not logged in). `403 Forbidden` (If the user tries to access a watchlist that isn't theirs). `404 Not Found` (If the watchlist ID doesn't exist).
+`500 Internal Server Error`.
+
+API Endpoint = POST => `/profile/watchlists/:watchlistId/stocks` => Result
+Description: This endpoint adds a stock ticker (e.g., "AAPL") to a specific watchlist. Expects a stock `symbol` in the request body.
+Success Response: `200 OK` or `201 Created` (Confirms the stock was added). Returns the updated watchlist.
+Error Response: `401 Unauthorized` `403 Forbidden`,, Bad Request` (e.g., invalid stock symbol, symbol already in watchlist). `404 Not Found` (as above). `500 Internal Server `400 Error`.
+
+API Endpoint = DELETE => `/profile/watchlists/:watchlistId/stocks/:stockSymbol` => Result
+Description: This endpoint removes a specific stock ticker from a watchlist.
+Success Response: `200 OK` (Confirms the stock was removed). Returns the updated watchlist.
+Error Response: `401 Unauthorized` `403 Forbidden`,, `404 Not Found` (as above). `500 Internal Server Error`.
+
+News Route: API Endpoint = GET => `/news` => News Page
+Description: This endpoint serves the News Page. The backend logic will gather all stock symbols from the logged-in user's watchlists, fetch relevant news for those symbols from a
+financial data API (like Alpha Vantage or News API), and return the articles.
+Success Response: `200 OK` (Returns a list of news article objects relevant to the user's watchlists).
+Error Response: `302 Found` and REDIRECT to `/auth/login` if the user is not authenticated. `500 Internal Server Error` (or `502 Bad Gateway` if the 3rd-party news API isdown). May return
+`200 OK` with an empty list if the user has no watchlists or stocks. User Route (Potential Future Enhancement):
+
+API Endpoint = GET => `/users/me` => Result
+Description: This endpoint fetches the current user's data (e.g., email, account creation date) for client-side use. This is useful for displaying a welcome message.
+Success Response: `200 OK` (Returns a user object, excluding sensitive data like password hash).
+Error Response: `401 Unauthorized` (If not logged in). `500 Internal Server Error`.
