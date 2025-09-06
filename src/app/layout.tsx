@@ -4,6 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { WatchlistProvider } from '@/contexts/WatchlistContext';
 import { PortfolioProvider } from '@/contexts/PortfolioContext';
+import { AlertsProvider } from '@/contexts/AlertsContext';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,7 +24,9 @@ export default function RootLayout({
         <AuthProvider>
           <WatchlistProvider>
             <PortfolioProvider>
-              {children}
+              <AlertsProvider>
+                {children}
+              </AlertsProvider>
             </PortfolioProvider>
           </WatchlistProvider>
         </AuthProvider>
