@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useState } from 'react';
+import Button from '@/components/ui/Button';
 
 export default function SignupForm() {
   const [name, setName] = useState('');
@@ -23,12 +23,7 @@ export default function SignupForm() {
   const router = useRouter();
 
   const validateForm = () => {
-    const newErrors: { 
-      name?: string; 
-      email?: string; 
-      password?: string; 
-      confirmPassword?: string; 
-    } = {};
+    const newErrors: any = {};
 
     if (!name.trim()) {
       newErrors.name = 'Name is required';
@@ -65,20 +60,20 @@ export default function SignupForm() {
     const success = await signup(name, email, password);
     
     if (success) {
-      router.push('/profile');
+      router.push('/dashboard');
     } else {
-      setErrors({ general: 'An account with this email already exists. Please use a different email or sign in instead.' });
+      setErrors({ general: 'An account with this email already exists.' });
     }
   };
 
   return (
     <div className="max-w-md w-full space-y-8">
       <div>
-        <h2 className="text-3xl font-bold text-center text-gray-900">Sign Up</h2>
+        <h2 className="text-3xl font-bold text-center text-gray-900">Create Account</h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
           <Link href="/auth/login" className="font-medium text-blue-600 hover:text-blue-500">
-            sign in to your account
+            sign in to your existing account
           </Link>
         </p>
       </div>
@@ -133,7 +128,7 @@ export default function SignupForm() {
           className="w-full"
           isLoading={isLoading}
         >
-          Sign Up
+          Create Account
         </Button>
 
         <div className="text-center">

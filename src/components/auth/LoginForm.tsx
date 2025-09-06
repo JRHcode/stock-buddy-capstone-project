@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
-import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useState } from 'react';
+import Button from '@/components/ui/Button';
 
 export default function LoginForm() {
   const [email, setEmail] = useState('');
@@ -42,7 +42,7 @@ export default function LoginForm() {
     const success = await login(email, password);
     
     if (success) {
-      router.push('/profile');
+      router.push('/dashboard');
     } else {
       setErrors({ general: 'Invalid email or password. Please check your credentials and try again.' });
     }

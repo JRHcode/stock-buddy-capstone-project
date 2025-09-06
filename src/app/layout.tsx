@@ -1,10 +1,15 @@
-import type { Metadata } from "next";
-import { AuthProvider } from "@/contexts/AuthContext";
-import "./globals.css";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { WatchlistProvider } from '@/contexts/WatchlistContext';
+import { PortfolioProvider } from '@/contexts/PortfolioContext';
+
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: "Stock Buddy",
-  description: "Track your favorite stocks and stay informed",
+  title: 'Stock Buddy',
+  description: 'Your personal stock tracking companion',
 };
 
 export default function RootLayout({
@@ -14,9 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <AuthProvider>
-          {children}
+          <WatchlistProvider>
+            <PortfolioProvider>
+              {children}
+            </PortfolioProvider>
+          </WatchlistProvider>
         </AuthProvider>
       </body>
     </html>
