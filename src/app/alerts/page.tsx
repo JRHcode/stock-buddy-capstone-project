@@ -1,30 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
+import { useAlerts } from '@/contexts/AlertsContext';
 import Navigation from '@/components/layout/Navigation';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useAuth } from '@/contexts/AuthContext';
-import { useAlerts, Alert } from '@/contexts/AlertsContext';
+import { useState } from 'react';
 
 export default function AlertsPage() {
-  const { user } = useAuth();
   const { isLoading } = useRequireAuth();
-  const { alerts, addAlert, removeAlert, toggleAlert, isLoading: alertsLoading } = useAlerts();
-
+  const { alerts, addAlert, removeAlert, isLoading: alertsLoading } = useAlerts();
+  
   const [showAddModal, setShowAddModal] = useState(false);
-  const [alertForm, setAlertForm] = useState({
+  const [newAlert, setNewAlert] = useState({
     symbol: '',
     targetPrice: '',
     condition: 'above' as 'above' | 'below'
   });
-  const [isAddingAlert, setIsAddingAlert] = useState(false);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg transition-colors">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -32,30 +29,27 @@ export default function AlertsPage() {
 
   const handleAddAlert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!alertForm.symbol || !alertForm.targetPrice) return;
-
-    setIsAddingAlert(true);
-    
+    if (!newAlert.symbol || !newAlert.targetPrice) return;
+  
     try {
       await addAlert({
-        symbol: alertForm.symbol.toUpperCase(),
-        targetPrice: parseFloat(alertForm.targetPrice),
-        condition: alertForm.condition
+        symbol: newAlert.symbol.toUpperCase(),
+        name: `${newAlert.symbol.toUpperCase()} Company`, // Add company name
+        targetPrice: parseFloat(newAlert.targetPrice),
+        condition: newAlert.condition,
+        currentPrice: 0 // Initialize with 0, will be updated by the context
       });
       
-      setAlertForm({ symbol: '', targetPrice: '', condition: 'above' });
+      setNewAlert({ symbol: '', targetPrice: '', condition: 'above' });
       setShowAddModal(false);
-      
-    } catch (err) {
-      console.error('Error adding alert:', err);
+    } catch (error) {
+      console.error('Error adding alert:', error);
       alert('Failed to add alert. Please try again.');
-    } finally {
-      setIsAddingAlert(false);
     }
   };
 
-  const handleRemoveAlert = (id: string, symbol: string) => {
-    if (confirm(`Are you sure you want to remove the alert for ${symbol}?`)) {
+  const handleRemoveAlert = (id: string) => {
+    if (confirm('Are you sure you want to remove this alert?')) {
       removeAlert(id);
     }
   };
@@ -67,222 +61,178 @@ export default function AlertsPage() {
     }).format(value);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getAlertStatus = (alert: Alert) => {
-    if (!alert.isActive) return { status: 'Paused', color: 'text-gray-500' };
-    
-    const isTriggered = alert.condition === 'above' 
-      ? alert.currentPrice >= alert.targetPrice
-      : alert.currentPrice <= alert.targetPrice;
-    
-    return isTriggered 
-      ? { status: 'Triggered', color: 'text-red-600' }
-      : { status: 'Active', color: 'text-green-600' };
-  };
-
-  const activeAlerts = alerts.filter(alert => alert.isActive);
-  const pausedAlerts = alerts.filter(alert => !alert.isActive);
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Price Alerts</h1>
-              <p className="text-gray-600">Manage your stock price alerts and notifications</p>
-            </div>
-            <Button onClick={() => setShowAddModal(true)}>
-              Add New Alert
-            </Button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Total Alerts</h3>
-              <p className="text-3xl font-bold text-blue-600">{alerts.length}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Alerts</h3>
-              <p className="text-3xl font-bold text-green-600">{activeAlerts.length}</p>
-            </div>
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Paused Alerts</h3>
-              <p className="text-3xl font-bold text-gray-600">{pausedAlerts.length}</p>
-            </div>
-          </div>
-
-          {/* Alerts List */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Your Alerts ({alerts.length})
-              </h2>
-            </div>
-            
-            {alerts.length === 0 ? (
-              <div className="p-12 text-center">
-                <div className="text-4xl mb-4">🔔</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No alerts set</h3>
-                <p className="text-gray-600 mb-4">Create your first price alert to get notified when stocks reach your target prices</p>
-                <Button onClick={() => setShowAddModal(true)}>
-                  Create Your First Alert
-                </Button>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {alerts.map((alert) => {
-                  const alertStatus = getAlertStatus(alert);
-                  return (
-                    <div key={alert.id} className="p-6 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="font-semibold text-gray-900">{alert.symbol}</h3>
-                                <span className={`text-sm font-medium ${alertStatus.color}`}>
-                                  {alertStatus.status}
-                                </span>
-                              </div>
-                              <p className="text-sm text-gray-600">
-                                Alert when price goes {alert.condition} {formatCurrency(alert.targetPrice)}
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                Created {formatDate(alert.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-6">
-                          <div className="text-right">
-                            <p className="text-sm text-gray-500">Current Price</p>
-                            <p className="font-semibold text-gray-900">{formatCurrency(alert.currentPrice)}</p>
-                          </div>
-                          
-                          <div className="text-right">
-                            <p className="text-sm text-gray-500">Target Price</p>
-                            <p className="font-semibold text-gray-900">{formatCurrency(alert.targetPrice)}</p>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => toggleAlert(alert.id)}
-                              variant="outline"
-                              size="sm"
-                              className={alert.isActive ? 'text-orange-600 hover:text-orange-700' : 'text-green-600 hover:text-green-700'}
-                            >
-                              {alert.isActive ? 'Pause' : 'Resume'}
-                            </Button>
-                            <Button
-                              onClick={() => handleRemoveAlert(alert.id, alert.symbol)}
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-dark-text-primary transition-colors">
+            Price Alerts
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-dark-text-secondary transition-colors">
+            Get notified when stocks reach your target prices
+          </p>
         </div>
-      </div>
+
+        {/* Add Alert Button */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold text-gray-800 dark:text-dark-text-primary transition-colors">
+            Your Alerts
+          </h2>
+          <Button 
+            onClick={() => setShowAddModal(true)}
+            variant="primary"
+          >
+            Add Alert
+          </Button>
+        </div>
+
+        {/* Alerts Table */}
+        <div className="bg-white dark:bg-dark-surface rounded-lg shadow-md dark:shadow-lg border dark:border-dark-border overflow-hidden transition-colors">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-border">
+            <thead className="bg-gray-50 dark:bg-dark-bg transition-colors">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Symbol
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Condition
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Target Price
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Current Price
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Created
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-dark-text-secondary uppercase tracking-wider transition-colors">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-dark-surface divide-y divide-gray-200 dark:divide-dark-border transition-colors">
+              {alerts.map((alert) => (
+                <tr key={alert.id} className="hover:bg-gray-50 dark:hover:bg-dark-bg/50 transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 dark:text-dark-text-primary transition-colors">
+                      {alert.symbol}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 dark:text-dark-text-primary transition-colors">
+                      Price goes {alert.condition}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">
+                    {formatCurrency(alert.targetPrice)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">
+                    {formatCurrency(alert.currentPrice || 0)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      alert.isActive 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' 
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400'
+                    } transition-colors`}>
+                      {alert.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">
+                    {new Date(alert.createdAt).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => handleRemoveAlert(alert.id)}
+                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          
+          {alerts.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-dark-text-secondary transition-colors">
+                No alerts found. Add your first alert to get started.
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
 
       {/* Add Alert Modal */}
       <Modal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
-        title="Add New Price Alert"
+        title="Add Price Alert"
       >
         <form onSubmit={handleAddAlert} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
               Stock Symbol
             </label>
             <Input
               type="text"
-              value={alertForm.symbol}
-              onChange={(e) => setAlertForm({...alertForm, symbol: e.target.value})}
-              placeholder="e.g., AAPL"
+              value={newAlert.symbol}
+              onChange={(e) => setNewAlert({...newAlert, symbol: e.target.value})}
+              placeholder="e.g., AAPL, GOOGL, TSLA"
+              className="w-full"
               required
             />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Target Price
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+              Target Price ($)
             </label>
             <Input
               type="number"
-              value={alertForm.targetPrice}
-              onChange={(e) => setAlertForm({...alertForm, targetPrice: e.target.value})}
-              placeholder="Enter target price"
               step="0.01"
+              value={newAlert.targetPrice}
+              onChange={(e) => setNewAlert({...newAlert, targetPrice: e.target.value})}
+              placeholder="e.g., 200.00"
+              className="w-full"
               required
             />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Condition
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+              Alert Condition
             </label>
-            <div className="flex gap-4">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="condition"
-                  checked={alertForm.condition === 'above'}
-                  onChange={() => setAlertForm({...alertForm, condition: 'above'})}
-                  className="mr-2"
-                />
-                <span>Above</span>
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="condition"
-                  checked={alertForm.condition === 'below'}
-                  onChange={() => setAlertForm({...alertForm, condition: 'below'})}
-                  className="mr-2"
-                />
-                <span>Below</span>
-              </label>
-            </div>
+            <select
+              value={newAlert.condition}
+              onChange={(e) => setNewAlert({...newAlert, condition: e.target.value as 'above' | 'below'})}
+              className="w-full p-2 border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-dark-surface text-gray-900 dark:text-dark-text-primary transition-colors"
+            >
+              <option value="above">Price goes above</option>
+              <option value="below">Price goes below</option>
+            </select>
           </div>
-          
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex gap-3 pt-4">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={() => setShowAddModal(false)}
+              className="flex-1"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isAddingAlert}
+              variant="primary"
+              disabled={alertsLoading}
+              className="flex-1"
             >
-              {isAddingAlert ? 'Adding...' : 'Add Alert'}
+              {alertsLoading ? 'Adding...' : 'Add Alert'}
             </Button>
           </div>
         </form>

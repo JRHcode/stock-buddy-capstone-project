@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface WatchlistStock {
+export interface WatchlistStock {
   id: string;
   symbol: string;
   name: string;
@@ -31,15 +31,20 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
     const savedWatchlist = localStorage.getItem('stockBuddyWatchlist');
     if (savedWatchlist) {
       try {
-        setWatchlist(JSON.parse(savedWatchlist));
+        const parsed = JSON.parse(savedWatchlist);
+        console.log('Loaded watchlist from localStorage:', parsed);
+        setWatchlist(parsed);
       } catch (error) {
         console.error('Error loading watchlist from localStorage:', error);
+        // Clear corrupted data
+        localStorage.removeItem('stockBuddyWatchlist');
       }
     }
   }, []);
 
   // Save watchlist to localStorage whenever it changes
   useEffect(() => {
+    console.log('Saving watchlist to localStorage:', watchlist);
     localStorage.setItem('stockBuddyWatchlist', JSON.stringify(watchlist));
   }, [watchlist]);
 
@@ -65,6 +70,7 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
         addedAt: new Date().toISOString().split('T')[0]
       };
 
+      console.log('Adding stock to watchlist:', newStock);
       setWatchlist(prev => [newStock, ...prev]);
     } finally {
       setIsLoading(false);
@@ -72,7 +78,14 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromWatchlist = (id: string) => {
-    setWatchlist(prev => prev.filter(stock => stock.id !== id));
+    console.log('Removing stock with id:', id);
+    console.log('Current watchlist:', watchlist);
+    
+    setWatchlist(prev => {
+      const updated = prev.filter(stock => stock.id !== id);
+      console.log('Updated watchlist after removal:', updated);
+      return updated;
+    });
   };
 
   const isInWatchlist = (symbol: string) => {

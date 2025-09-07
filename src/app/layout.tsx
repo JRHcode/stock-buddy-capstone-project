@@ -5,12 +5,13 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { WatchlistProvider } from '@/contexts/WatchlistContext';
 import { PortfolioProvider } from '@/contexts/PortfolioContext';
 import { AlertsProvider } from '@/contexts/AlertsContext';
+import { ThemeProvider } from '@/components/providers/ThemeProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Stock Buddy',
-  description: 'Your personal stock tracking companion',
+  description: 'Track your favorite stocks and manage your portfolio',
 };
 
 export default function RootLayout({
@@ -19,17 +20,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <WatchlistProvider>
-            <PortfolioProvider>
-              <AlertsProvider>
-                {children}
-              </AlertsProvider>
-            </PortfolioProvider>
-          </WatchlistProvider>
-        </AuthProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthProvider>
+            <WatchlistProvider>
+              <PortfolioProvider>
+                <AlertsProvider>
+                  {children}
+                </AlertsProvider>
+              </PortfolioProvider>
+            </WatchlistProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -1,13 +1,13 @@
 'use client';
 
-import { useRequireAuth } from '@/hooks/useRequireAuth';
-import Input from '@/components/ui/Input';
 import { useState } from 'react';
+import Navigation from '@/components/layout/Navigation';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useWatchlist } from '@/contexts/WatchlistContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
-import Navigation from '@/components/layout/Navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function WatchlistPage() {
@@ -19,7 +19,7 @@ export default function WatchlistPage() {
   const [newSymbol, setNewSymbol] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   
-  // Modal states
+  // Modal state for adding holdings
   const [showHoldingModal, setShowHoldingModal] = useState(false);
   const [selectedStock, setSelectedStock] = useState<any>(null);
   const [holdingForm, setHoldingForm] = useState({
@@ -29,7 +29,7 @@ export default function WatchlistPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-bg">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -62,8 +62,14 @@ export default function WatchlistPage() {
     }
   };
 
-  const handleRemoveStock = (id: string) => {
-    removeFromWatchlist(id);
+  const handleRemoveStock = (id: string, symbol: string) => {
+    console.log(`Attempting to remove stock: ${symbol} with id: ${id}`);
+    
+    // Add confirmation dialog
+    if (window.confirm(`Are you sure you want to remove ${symbol} from your watchlist?`)) {
+      removeFromWatchlist(id);
+      console.log(`Removed ${symbol} from watchlist`);
+    }
   };
 
   const handleAddToHoldings = (stock: any) => {
@@ -72,7 +78,7 @@ export default function WatchlistPage() {
     setShowHoldingModal(true);
   };
 
-  const handleSubmitHolding = async (e: React.FormEvent) => {
+  const handleHoldingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStock || !holdingForm.shares || !holdingForm.price) return;
 
@@ -84,12 +90,11 @@ export default function WatchlistPage() {
         avgPrice: parseFloat(holdingForm.price)
       });
       
-      setHoldingForm({ shares: '', price: '' });
-      setSelectedStock(null);
       setShowHoldingModal(false);
+      setSelectedStock(null);
+      setHoldingForm({ shares: '', price: '' });
       
       alert(`Successfully added ${selectedStock.symbol} to your portfolio!`);
-      
     } catch (err) {
       console.error('Error adding holding:', err);
       alert('Failed to add holding. Please try again.');
@@ -104,20 +109,20 @@ export default function WatchlistPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors">
       <Navigation />
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">My Watchlist</h1>
-            <p className="text-gray-600">Track your favorite stocks and monitor their performance</p>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-dark-text-primary mb-2 transition-colors">My Watchlist</h1>
+            <p className="text-gray-600 dark:text-dark-text-secondary transition-colors">Track your favorite stocks and monitor their performance</p>
           </div>
 
           {/* Add Stock Form */}
-          <div className="bg-white rounded-lg shadow p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Add Stock to Watchlist</h2>
+          <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg p-6 mb-8 border dark:border-dark-border transition-colors">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-4 transition-colors">Add Stock to Watchlist</h2>
             <form onSubmit={handleAddStock} className="flex gap-4">
               <div className="flex-1">
                 <Input
@@ -139,38 +144,40 @@ export default function WatchlistPage() {
           </div>
 
           {/* Watchlist */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
+          <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg border dark:border-dark-border transition-colors">
+            <div className="p-6 border-b dark:border-dark-border">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary">
                 Stocks ({watchlist.length})
               </h2>
             </div>
             
             {watchlist.length === 0 ? (
-              <div className="p-12 text-center">
+              <div className="p-12 text-center border-b dark:border-dark-border">
                 <div className="text-4xl mb-4">👁️</div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No stocks in watchlist</h3>
-                <p className="text-gray-600">Add some stocks to start tracking their performance</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-dark-text-primary mb-2 transition-colors">No stocks in watchlist</h3>
+                <p className="text-gray-600 dark:text-dark-text-secondary transition-colors">Add some stocks to start tracking their performance</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y dark:divide-dark-border">
                 {watchlist.map((stock) => (
-                  <div key={stock.id} className="p-6 hover:bg-gray-50">
+                  <div key={stock.id} className="p-6 hover:bg-gray-50 dark:hover:bg-dark-bg/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-4">
                           <div>
-                            <h3 className="font-semibold text-gray-900">{stock.symbol}</h3>
-                            <p className="text-sm text-gray-600">{stock.name}</p>
-                            <p className="text-xs text-gray-500">Added {stock.addedAt}</p>
+                            <h3 className="font-semibold text-gray-900 dark:text-dark-text-primary">{stock.symbol}</h3>
+                            <p className="text-sm text-gray-600 dark:text-dark-text-secondary">{stock.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-dark-text-secondary">Added {stock.addedAt}</p>
+                            {/* Debug info */}
+                            <p className="text-xs text-gray-400 dark:text-dark-text-secondary">ID: {stock.id}</p>
                           </div>
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-6">
                         <div className="text-right">
-                          <p className="font-semibold text-gray-900">{formatCurrency(stock.price)}</p>
-                          <p className={`text-sm ${stock.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <p className="font-semibold text-gray-900 dark:text-dark-text-primary">{formatCurrency(stock.price)}</p>
+                          <p className={`text-sm ${stock.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                             {stock.change >= 0 ? '+' : ''}{formatCurrency(stock.change)} 
                             ({stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%)
                           </p>
@@ -181,15 +188,16 @@ export default function WatchlistPage() {
                             onClick={() => handleAddToHoldings(stock)}
                             variant="primary"
                             size="sm"
-                            className="bg-green-600 hover:bg-green-700"
+                            className="bg-blue-600 text-white hover:bg-blue-700 hover:text-yellow-400 border border-blue-600 hover:border-blue-700 transition-colors"
                           >
                             Add to Holdings
                           </Button>
+                          
                           <Button
-                            onClick={() => handleRemoveStock(stock.id)}
+                            onClick={() => handleRemoveStock(stock.id, stock.symbol)}
                             variant="secondary"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                           >
                             Remove
                           </Button>
@@ -207,31 +215,12 @@ export default function WatchlistPage() {
       {/* Add to Holdings Modal */}
       <Modal
         isOpen={showHoldingModal}
-        onClose={() => {
-          setShowHoldingModal(false);
-          setSelectedStock(null);
-          setHoldingForm({ shares: '', price: '' });
-        }}
+        onClose={() => setShowHoldingModal(false)}
         title={`Add ${selectedStock?.symbol} to Portfolio`}
       >
-        <form onSubmit={handleSubmitHolding} className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="font-semibold text-gray-900">{selectedStock?.symbol}</h3>
-                <p className="text-sm text-gray-600">{selectedStock?.name}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-900">
-                  {selectedStock && formatCurrency(selectedStock.price)}
-                </p>
-                <p className="text-sm text-gray-500">Current Price</p>
-              </div>
-            </div>
-          </div>
-          
+        <form onSubmit={handleHoldingSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1">
               Number of Shares
             </label>
             <Input
@@ -243,10 +232,9 @@ export default function WatchlistPage() {
               required
             />
           </div>
-          
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Purchase Price per Share ($)
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1">
+              Average Price per Share ($)
             </label>
             <Input
               type="number"
@@ -257,20 +245,12 @@ export default function WatchlistPage() {
               className="w-full"
               required
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Pre-filled with current price. Adjust if needed.
-            </p>
           </div>
-          
           <div className="flex gap-3 pt-4">
             <Button
               type="button"
               variant="secondary"
-              onClick={() => {
-                setShowHoldingModal(false);
-                setSelectedStock(null);
-                setHoldingForm({ shares: '', price: '' });
-              }}
+              onClick={() => setShowHoldingModal(false)}
               className="flex-1"
             >
               Cancel

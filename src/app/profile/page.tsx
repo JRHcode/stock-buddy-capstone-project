@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useAuth } from '@/contexts/AuthContext';
-import Button from '@/components/ui/Button';
 import Navigation from '@/components/layout/Navigation';
+import Button from '@/components/ui/Button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
@@ -24,18 +24,36 @@ export default function ProfilePage() {
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Welcome, {user?.name}!</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Profile</h1>
+          
           <div className="bg-white shadow rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
-            <div className="space-y-2">
-              <p><strong>Name:</strong> {user?.name}</p>
-              <p><strong>Email:</strong> {user?.email}</p>
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Account Information</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name
+                </label>
+                <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                  {user?.name}
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <p className="text-gray-900 bg-gray-50 px-3 py-2 rounded-md">
+                  {user?.email}
+                </p>
+              </div>
             </div>
             
-            <div className="mt-6 pt-6 border-t">
+            <div className="mt-8 pt-6 border-t border-gray-200">
               <Button 
                 onClick={logout}
                 variant="secondary"
+                className="w-full sm:w-auto"
               >
                 Sign Out
               </Button>
