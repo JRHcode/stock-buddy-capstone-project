@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
@@ -11,7 +11,7 @@ export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
-  const { login, isLoading } = useAuth();
+  const { login, loading } = useAuthContext();
   const router = useRouter();
 
   const validateForm = () => {
@@ -90,7 +90,7 @@ export default function LoginForm() {
         <Button
           type="submit"
           className="w-full"
-          isLoading={isLoading}
+          isLoading={loading}
         >
           Sign In
         </Button>

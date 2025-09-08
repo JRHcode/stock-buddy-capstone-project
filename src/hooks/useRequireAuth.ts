@@ -1,27 +1,28 @@
 
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export function useRequireAuth() {
-  const { user } = useAuth();
+export function useRequireAuth(redirectUrl: string = '/auth/login') {
+  const { user, loading: authLoading } = useAuthContext();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Give a moment for the auth context to load from localStorage
-    const timer = setTimeout(() => {
+    // Only check authentication after the auth context has finished loading
+    if (!authLoading) {
       if (!user) {
-        router.push('/auth/login');
+        router.push(redirectUrl);
       } else {
         setIsLoading(false);
       }
-    }, 100);
+    }
+  }, [user, authLoading, router, redirectUrl]);
 
-    return () => clearTimeout(timer);
-  }, [user, router]);
-
-  return { isLoading };
+  return { 
+    isLoading: isLoading || authLoading,
+    isAuthLoading: authLoading
+  };
 }

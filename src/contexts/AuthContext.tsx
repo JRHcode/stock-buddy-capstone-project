@@ -1,161 +1,173 @@
-
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 interface User {
   id: string;
-  name: string;
   email: string;
+  createdAt: string;
+}
+
+interface AuthResponse {
+  message: string;
+  user: User;
+  token?: string;
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (name: string, email: string, password: string) => Promise<boolean>;
+  loading: boolean;
+  error: string | null;
+  signup: (email: string, password: string) => Promise<AuthResponse | null>;
+  login: (email: string, password: string) => Promise<AuthResponse | null>;
   logout: () => void;
-  isLoading: boolean;
+  getCurrentUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock user database - in a real app, this would be in your backend
-const MOCK_USERS_KEY = 'stock_buddy_users';
-
-interface StoredUser {
-  id: string;
-  name: string;
-  email: string;
-  password: string; // In real app, this would be hashed
-}
-
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load user from localStorage on mount
-  useEffect(() => {
-    const savedUser = localStorage.getItem('stock_buddy_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  const signup = useCallback(async (email: string, password: string): Promise<AuthResponse | null> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Signup attempt for:', email);
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      console.log('Signup response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Signup failed');
+      }
+
+      setUser(data.user);
+      return data;
+    } catch (err: any) {
+      console.error('Signup error:', err.message);
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  // Helper functions for mock database
-  const getStoredUsers = (): StoredUser[] => {
-    const users = localStorage.getItem(MOCK_USERS_KEY);
-    return users ? JSON.parse(users) : [];
-  };
-
-  const saveStoredUsers = (users: StoredUser[]) => {
-    localStorage.setItem(MOCK_USERS_KEY, JSON.stringify(users));
-  };
-
-  const findUserByEmail = (email: string): StoredUser | undefined => {
-    const users = getStoredUsers();
-    return users.find(u => u.email.toLowerCase() === email.toLowerCase());
-  };
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  const login = useCallback(async (email: string, password: string): Promise<AuthResponse | null> => {
+    setLoading(true);
+    setError(null);
     
     try {
-      const storedUser = findUserByEmail(email);
-      
-      if (!storedUser) {
-        console.log('User not found');
-        return false;
-      }
-      
-      if (storedUser.password !== password) {
-        console.log('Invalid password');
-        return false;
-      }
-      
-      // Login successful
-      const userSession: User = {
-        id: storedUser.id,
-        name: storedUser.name,
-        email: storedUser.email
-      };
-      
-      setUser(userSession);
-      localStorage.setItem('stock_buddy_user', JSON.stringify(userSession));
-      return true;
-      
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      console.log('Login attempt for:', email);
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    setIsLoading(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    try {
-      const users = getStoredUsers();
+      const data = await response.json();
+      console.log('Login API response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      setUser(data.user);
       
-      // Check if user already exists
-      if (findUserByEmail(email)) {
-        console.log('User already exists');
-        return false;
+      if (data.token) {
+        console.log('Storing token in localStorage:', data.token);
+        localStorage.setItem('token', data.token);
+      } else {
+        console.warn('No token received in login response');
       }
       
-      // Create new user
-      const newUser: StoredUser = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        email: email.toLowerCase(),
-        password // In real app, hash this password
-      };
-      
-      // Save to mock database
-      users.push(newUser);
-      saveStoredUsers(users);
-      
-      // Auto-login after signup
-      const userSession: User = {
-        id: newUser.id,
-        name: newUser.name,
-        email: newUser.email
-      };
-      
-      setUser(userSession);
-      localStorage.setItem('stock_buddy_user', JSON.stringify(userSession));
-      return true;
-      
-    } catch (error) {
-      console.error('Signup error:', error);
-      return false;
+      return data;
+    } catch (err: any) {
+      console.error('Login error:', err.message);
+      setError(err.message);
+      return null;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    console.log('Logging out user');
     setUser(null);
-    localStorage.removeItem('stock_buddy_user');
+    localStorage.removeItem('token');
+  }, []);
+
+  const getCurrentUser = useCallback(async (): Promise<User | null> => {
+    const token = localStorage.getItem('token');
+    console.log('Retrieving current user, token exists:', !!token);
+    
+    if (!token) {
+      console.log('No token found in localStorage');
+      return null;
+    }
+
+    try {
+      const response = await fetch('/api/users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+
+      const data = await response.json();
+      setUser(data.user);
+      return data.user;
+    } catch (err) {
+      console.error('Failed to get current user:', err);
+      localStorage.removeItem('token');
+      return null;
+    }
+  }, []);
+
+  // Add auto-login on mount (optional)
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token && !user) {
+      getCurrentUser();
+    }
+  }, []);
+
+  const value = {
+    user,
+    loading,
+    error,
+    signup,
+    login,
+    logout,
+    getCurrentUser,
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isLoading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
 
-export function useAuth() {
+export function useAuthContext() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error('useAuthContext must be used within an AuthProvider');
   }
   return context;
 }

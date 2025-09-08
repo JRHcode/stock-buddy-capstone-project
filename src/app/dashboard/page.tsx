@@ -9,10 +9,10 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import StockSearch from '@/components/stock/StockSearch';
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const { isLoading } = useRequireAuth();
   const { watchlist, addToWatchlist, isLoading: watchlistLoading } = useWatchlist();
   const { holdings, addHolding, getTotalValue, getTotalGainLoss, isLoading: portfolioLoading } = usePortfolio();

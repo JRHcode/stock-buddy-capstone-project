@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuthContext } from './AuthContext'; // Import auth context
 
 export interface PortfolioHolding {
   id: string;
@@ -30,32 +31,52 @@ const PortfolioContext = createContext<PortfolioContextType | undefined>(undefin
 export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   const [holdings, setHoldings] = useState<PortfolioHolding[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuthContext(); // Get current user from auth
 
-  // Load portfolio from localStorage on mount
+  // Generate a user-specific storage key
+  const getStorageKey = () => {
+    return user ? `stockBuddyPortfolio_${user.id}` : 'stockBuddyPortfolio_guest';
+  };
+
+  // Load portfolio from localStorage on mount or when user changes
   useEffect(() => {
-    const savedPortfolio = localStorage.getItem('stockBuddyPortfolio');
-    if (savedPortfolio) {
-      try {
-        setHoldings(JSON.parse(savedPortfolio));
-      } catch (error) {
-        console.error('Error loading portfolio from localStorage:', error);
+    if (user) {
+      const storageKey = getStorageKey();
+      const savedPortfolio = localStorage.getItem(storageKey);
+      if (savedPortfolio) {
+        try {
+          setHoldings(JSON.parse(savedPortfolio));
+        } catch (error) {
+          console.error('Error loading portfolio from localStorage:', error);
+        }
+      } else {
+        setHoldings([]); // Clear holdings for new user
       }
+    } else {
+      setHoldings([]); // Clear holdings when user logs out
     }
-  }, []);
+  }, [user]); // Reload when user changes
 
-  // Save portfolio to localStorage whenever it changes
+  // Save portfolio to localStorage whenever it changes or user changes
   useEffect(() => {
-    localStorage.setItem('stockBuddyPortfolio', JSON.stringify(holdings));
-  }, [holdings]);
+    if (user) {
+      const storageKey = getStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(holdings));
+    }
+  }, [holdings, user]); // Save when holdings or user changes
 
   const addHolding = async (holding: { symbol: string; name: string; shares: number; avgPrice: number }) => {
+    if (!user) {
+      throw new Error('You must be logged in to add holdings');
+    }
+
     setIsLoading(true);
     
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Generate mock current price (in real app, this would come from API)
+      // Generate mock current price
       const currentPrice = holding.avgPrice + (Math.random() - 0.5) * 20;
       const totalValue = holding.shares * currentPrice;
       const gainLoss = totalValue - (holding.shares * holding.avgPrice);
@@ -81,10 +102,12 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeHolding = (id: string) => {
+    if (!user) return;
     setHoldings(prev => prev.filter(holding => holding.id !== id));
   };
 
   const updateHoldingPrice = (symbol: string, newPrice: number) => {
+    if (!user) return;
     setHoldings(prev => prev.map(holding => {
       if (holding.symbol === symbol) {
         const totalValue = holding.shares * newPrice;

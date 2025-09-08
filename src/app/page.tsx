@@ -1,15 +1,15 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext'; 
 import Navigation from '@/components/layout/Navigation';
 import StockSearch from '@/components/stock/StockSearch';
 import Button from '@/components/ui/Button';
 import Link from 'next/link';
 
 export default function HomePage() {
-  const { user, isLoading } = useAuth();
+  const { user, loading } = useAuthContext(); 
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>

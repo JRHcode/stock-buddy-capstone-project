@@ -11,17 +11,15 @@ interface StockChartProps {
 // Simplified mock data generator
 const generateMockData = (symbol: string): HistoricalPrice[] => {
   const data: HistoricalPrice[] = [];
-  const basePrice = 150; // Fixed base price for testing
+  const basePrice = 150;
   let currentPrice = basePrice;
   
-  // Generate 30 days of mock data
   for (let i = 29; i >= 0; i--) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     
-    // Small random price movement
     const change = (Math.random() - 0.5) * 5;
-    currentPrice = Math.max(currentPrice + change, 50); // Keep price reasonable
+    currentPrice = Math.max(currentPrice + change, 50);
     
     data.push({
       date: date.toISOString().split('T')[0],
@@ -49,11 +47,20 @@ export default function StockChart({ symbol }: StockChartProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('StockChart useEffect running for symbol:', symbol);
+    let isMounted = true;
+
     const fetchHistoricalData = async () => {
-      if (!symbol) return;
+      if (!symbol || symbol.trim() === '') {
+        console.log('No symbol provided, skipping fetch');
+        if (isMounted) setLoading(false);
+        return;
+      }
       
-      setLoading(true);
-      setError(null);
+      if (isMounted) {
+        setLoading(true);
+        setError(null);
+      }
       
       try {
         console.log(`Fetching historical data for ${symbol}...`);
@@ -62,63 +69,85 @@ export default function StockChart({ symbol }: StockChartProps) {
         if (!stockApi.isSymbolAvailableOnFreePlan(symbol)) {
           console.log(`Symbol ${symbol} not available on free plan, using mock data`);
           const mockData = generateMockData(symbol);
-          setData(mockData);
-          setError(`${symbol} not available on free plan - showing mock data`);
-          setLoading(false);
+          if (isMounted) {
+            setData(mockData);
+            setError(`${symbol} not available on free plan - showing mock data`);
+            setLoading(false);
+          }
           return;
         }
         
-        // Try to get real historical data
-        const historicalData = await stockApi.getHistoricalPrices(symbol);
+        // Try to get real historical data with timeout
+        const historicalData = await Promise.race([
+          stockApi.getHistoricalPrices(symbol),
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)) // 5 second timeout
+        ]);
+        
+        if (!historicalData) {
+          throw new Error('API request timeout');
+        }
         
         console.log('Raw historical data:', historicalData);
         console.log('Data length:', historicalData?.length);
         
         if (historicalData && historicalData.length > 0) {
-          // Validate that we have valid price data
           const validData = historicalData.filter(item => 
             !isNaN(item.close) && item.close > 0 && item.date
           );
           
           if (validData.length > 0) {
-            // Take only the last 30 days for better performance and readability
-            const recentData = validData.slice(0, 30).reverse(); // Reverse to show oldest to newest
+            const recentData = validData.slice(-30); // Last 30 days
             console.log('Processed data for chart:', recentData);
-            setData(recentData);
-            setError(null); // Clear any previous errors
+            if (isMounted) {
+              setData(recentData);
+              setError(null);
+            }
           } else {
             console.log('No valid price data, using mock data');
             const mockData = generateMockData(symbol);
-            setData(mockData);
-            setError('Invalid price data received - showing mock data');
+            if (isMounted) {
+              setData(mockData);
+              setError('Invalid price data received - showing mock data');
+            }
           }
         } else {
-          console.log('No real data available, using mock data for demonstration');
+          console.log('No real data available, using mock data');
           const mockData = generateMockData(symbol);
-          setData(mockData);
-          setError('Real historical data not available - showing mock data');
+          if (isMounted) {
+            setData(mockData);
+            setError('Real historical data not available - showing mock data');
+          }
         }
       } catch (err) {
         console.error('Error fetching historical data:', err);
-        console.log('API failed, using mock data for demonstration');
-        const mockData = generateMockData(symbol);
-        setData(mockData);
-        setError('API error - showing mock data for demonstration');
+        if (isMounted) {
+          const mockData = generateMockData(symbol);
+          setData(mockData);
+          setError('API error - showing mock data for demonstration');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchHistoricalData();
-  }, [symbol]);
+
+    return () => {
+      isMounted = false; // Cleanup function
+    };
+  }, [symbol]); // <-- CRITICAL: Add dependency array
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return dateString;
+    }
   };
 
   const formatPrice = (value: number) => {
-    return `${value.toFixed(2)}`;
+    return `$${value.toFixed(2)}`;
   };
 
   if (loading) {
@@ -145,11 +174,6 @@ export default function StockChart({ symbol }: StockChartProps) {
       </div>
     );
   }
-
-  // Debug: Log the data being passed to the chart
-  console.log('Chart data being rendered:', data);
-  console.log('First data point:', data[0]);
-  console.log('Last data point:', data[data.length - 1]);
 
   return (
     <div className="w-full">
@@ -214,9 +238,11 @@ export default function StockChart({ symbol }: StockChartProps) {
         </ResponsiveContainer>
       </div>
       
-      {/* Debug info */}
       <div className="mt-2 text-xs text-gray-500">
-        Debug: {data.length} data points, Price range: ${Math.min(...data.map(d => d.close)).toFixed(2)} - ${Math.max(...data.map(d => d.close)).toFixed(2)}
+        Debug: {data.length} data points, 
+        {data.length > 0 ? (
+          ` Price range: $${Math.min(...data.map(d => d.close)).toFixed(2)} - $${Math.max(...data.map(d => d.close)).toFixed(2)}`
+        ) : ' No price data'}
       </div>
     </div>
   );

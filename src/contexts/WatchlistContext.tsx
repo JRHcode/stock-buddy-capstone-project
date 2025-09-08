@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuthContext } from './AuthContext'; // Import auth context
 
 export interface WatchlistStock {
   id: string;
@@ -25,30 +26,52 @@ const WatchlistContext = createContext<WatchlistContextType | undefined>(undefin
 export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   const [watchlist, setWatchlist] = useState<WatchlistStock[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuthContext(); // Get current user from auth
 
-  // Load watchlist from localStorage on mount
+  // Generate a user-specific storage key
+  const getStorageKey = () => {
+    return user ? `stockBuddyWatchlist_${user.id}` : 'stockBuddyWatchlist_guest';
+  };
+
+  // Load watchlist from localStorage on mount or when user changes
   useEffect(() => {
-    const savedWatchlist = localStorage.getItem('stockBuddyWatchlist');
-    if (savedWatchlist) {
-      try {
-        const parsed = JSON.parse(savedWatchlist);
-        console.log('Loaded watchlist from localStorage:', parsed);
-        setWatchlist(parsed);
-      } catch (error) {
-        console.error('Error loading watchlist from localStorage:', error);
-        // Clear corrupted data
-        localStorage.removeItem('stockBuddyWatchlist');
+    if (user) {
+      const storageKey = getStorageKey();
+      const savedWatchlist = localStorage.getItem(storageKey);
+      if (savedWatchlist) {
+        try {
+          const parsed = JSON.parse(savedWatchlist);
+          console.log('Loaded watchlist from localStorage:', parsed);
+          setWatchlist(parsed);
+        } catch (error) {
+          console.error('Error loading watchlist from localStorage:', error);
+          // Clear corrupted data
+          localStorage.removeItem(storageKey);
+        }
+      } else {
+        setWatchlist([]); // Clear watchlist for new user
+        console.log('No saved watchlist found for user');
       }
+    } else {
+      setWatchlist([]); // Clear watchlist when user logs out
+      console.log('User logged out, clearing watchlist');
     }
-  }, []);
+  }, [user]); // Reload when user changes
 
-  // Save watchlist to localStorage whenever it changes
+  // Save watchlist to localStorage whenever it changes or user changes
   useEffect(() => {
-    console.log('Saving watchlist to localStorage:', watchlist);
-    localStorage.setItem('stockBuddyWatchlist', JSON.stringify(watchlist));
-  }, [watchlist]);
+    if (user) {
+      const storageKey = getStorageKey();
+      console.log('Saving watchlist to localStorage:', watchlist);
+      localStorage.setItem(storageKey, JSON.stringify(watchlist));
+    }
+  }, [watchlist, user]); // Save when watchlist or user changes
 
   const addToWatchlist = async (stock: { symbol: string; name: string; price: number; change: number; changePercent: number }) => {
+    if (!user) {
+      throw new Error('You must be logged in to add to watchlist');
+    }
+
     setIsLoading(true);
     
     try {
@@ -78,6 +101,8 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromWatchlist = (id: string) => {
+    if (!user) return;
+    
     console.log('Removing stock with id:', id);
     console.log('Current watchlist:', watchlist);
     

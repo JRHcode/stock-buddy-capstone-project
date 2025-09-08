@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { useAuthContext } from './AuthContext'; // Import auth context
 
 export interface Alert {
   id: string;
@@ -31,30 +32,50 @@ interface AlertsProviderProps {
 export function AlertsProvider({ children }: AlertsProviderProps) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuthContext(); // Get current user from auth
 
-  // Load alerts from localStorage on mount
+  // Generate a user-specific storage key
+  const getStorageKey = () => {
+    return user ? `stockBuddy_alerts_${user.id}` : 'stockBuddy_alerts_guest';
+  };
+
+  // Load alerts from localStorage on mount or when user changes
   useEffect(() => {
-    const savedAlerts = localStorage.getItem('stockBuddy_alerts');
-    if (savedAlerts) {
-      try {
-        const parsedAlerts = JSON.parse(savedAlerts).map((alert: any) => ({
-          ...alert,
-          createdAt: new Date(alert.createdAt),
-          triggeredAt: alert.triggeredAt ? new Date(alert.triggeredAt) : undefined
-        }));
-        setAlerts(parsedAlerts);
-      } catch (error) {
-        console.error('Error loading alerts from localStorage:', error);
+    if (user) {
+      const storageKey = getStorageKey();
+      const savedAlerts = localStorage.getItem(storageKey);
+      if (savedAlerts) {
+        try {
+          const parsedAlerts = JSON.parse(savedAlerts).map((alert: any) => ({
+            ...alert,
+            createdAt: new Date(alert.createdAt),
+            triggeredAt: alert.triggeredAt ? new Date(alert.triggeredAt) : undefined
+          }));
+          setAlerts(parsedAlerts);
+        } catch (error) {
+          console.error('Error loading alerts from localStorage:', error);
+        }
+      } else {
+        setAlerts([]); // Clear alerts for new user
       }
+    } else {
+      setAlerts([]); // Clear alerts when user logs out
     }
-  }, []);
+  }, [user]); // Reload when user changes
 
-  // Save alerts to localStorage whenever alerts change
+  // Save alerts to localStorage whenever alerts change or user changes
   useEffect(() => {
-    localStorage.setItem('stockBuddy_alerts', JSON.stringify(alerts));
-  }, [alerts]);
+    if (user) {
+      const storageKey = getStorageKey();
+      localStorage.setItem(storageKey, JSON.stringify(alerts));
+    }
+  }, [alerts, user]); // Save when alerts or user changes
 
   const addAlert = async (alertData: Omit<Alert, 'id' | 'createdAt' | 'isActive'>) => {
+    if (!user) {
+      throw new Error('You must be logged in to create alerts');
+    }
+
     setIsLoading(true);
     
     try {
@@ -78,10 +99,12 @@ export function AlertsProvider({ children }: AlertsProviderProps) {
   };
 
   const removeAlert = (id: string) => {
+    if (!user) return;
     setAlerts(prev => prev.filter(alert => alert.id !== id));
   };
 
   const toggleAlert = (id: string) => {
+    if (!user) return;
     setAlerts(prev => prev.map(alert => 
       alert.id === id 
         ? { ...alert, isActive: !alert.isActive }

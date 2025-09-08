@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Input from '@/components/ui/Input';
@@ -19,7 +19,7 @@ export default function SignupForm() {
     confirmPassword?: string; 
     general?: string 
   }>({});
-  const { signup, isLoading } = useAuth();
+  const { signup, loading } = useAuthContext(); // ← This gives us 'loading'
   const router = useRouter();
 
   const validateForm = () => {
@@ -57,7 +57,7 @@ export default function SignupForm() {
 
     if (!validateForm()) return;
 
-    const success = await signup(name, email, password);
+    const success = await signup(email, password);
     
     if (success) {
       router.push('/dashboard');
@@ -126,7 +126,7 @@ export default function SignupForm() {
         <Button
           type="submit"
           className="w-full"
-          isLoading={isLoading}
+          isLoading={loading} // ← Changed from isLoading to loading
         >
           Create Account
         </Button>

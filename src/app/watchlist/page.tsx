@@ -8,10 +8,10 @@ import Modal from '@/components/ui/Modal';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useWatchlist } from '@/contexts/WatchlistContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function WatchlistPage() {
-  const { user } = useAuth();
+  const { user } = useAuthContext();
   const { isLoading } = useRequireAuth();
   const { watchlist, addToWatchlist, removeFromWatchlist, isLoading: watchlistLoading } = useWatchlist();
   const { addHolding, isLoading: portfolioLoading } = usePortfolio();

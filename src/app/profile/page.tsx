@@ -3,11 +3,11 @@
 
 import Navigation from '@/components/layout/Navigation';
 import Button from '@/components/ui/Button';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 
 export default function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuthContext();
   const { isLoading } = useRequireAuth();
 
   if (isLoading) {
@@ -64,3 +64,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+
