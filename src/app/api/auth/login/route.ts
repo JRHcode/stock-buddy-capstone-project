@@ -6,6 +6,9 @@ import { generateAuthToken } from '@/lib/auth';
 // Define a type for user with password
 interface UserWithPassword extends IUser {
   password: string;
+  name: string; // Add name property
+  email: string;
+  createdAt: Date;
 }
 
 export async function POST(request: NextRequest) {
@@ -47,11 +50,12 @@ export async function POST(request: NextRequest) {
     // Generate JWT token - convert _id to string
     const token = generateAuthToken(user._id.toString());
 
-    // Return success response
+    // Return success response with user's name
     return NextResponse.json({
       message: 'Login successful',
       user: {
         id: user._id.toString(),
+        name: user.name, // Added name field
         email: user.email,
         createdAt: user.createdAt
       },

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
+  name: string;
   email: string;
   password: string;
   createdAt: Date;
@@ -11,12 +12,12 @@ export interface IUser extends Document {
 }
 
 const userSchema: Schema = new mongoose.Schema({
-  // name: {
-  //   type: String,
-  //   required: true, 
-  //   trim: true,
-  //   maxlength: 50
-  // },
+  name: {
+    type: String,
+    required: true, 
+    trim: true,
+    maxlength: 50
+  },
   email: {
     type: String,
     required: true,
@@ -49,7 +50,10 @@ userSchema.pre('save', async function(this: UserThisContext, next) {
   } catch (error: any) {
     next(error);
   }
+
+  
 });
+
 
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);

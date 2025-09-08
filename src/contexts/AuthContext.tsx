@@ -5,6 +5,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 interface User {
   id: string;
   email: string;
+  name: string;
   createdAt: string;
 }
 
@@ -18,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  signup: (email: string, password: string) => Promise<AuthResponse | null>;
+  signup: (name: string, email: string, password: string) => Promise<AuthResponse | null>;
   login: (email: string, password: string) => Promise<AuthResponse | null>;
   logout: () => void;
   getCurrentUser: () => Promise<User | null>;
@@ -31,28 +32,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const signup = useCallback(async (email: string, password: string): Promise<AuthResponse | null> => {
+  const signup = useCallback(async (name: string, email: string, password: string): Promise<AuthResponse | null> => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log('Signup attempt for:', email);
+      console.log('Signup attempt for:', name, email);
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
 
       const data = await response.json();
       console.log('Signup response:', data);
 
+      // ✅ Moved this check BEFORE setting user data
       if (!response.ok) {
         throw new Error(data.error || 'Signup failed');
       }
 
-      setUser(data.user);
+      // ✅ Only set user if response is successful
+      if (data.user) {
+        setUser(data.user);
+        console.log('User set in context:', data.user);
+      }
+      
       return data;
     } catch (err: any) {
       console.error('Signup error:', err.message);
@@ -139,13 +146,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Add auto-login on mount (optional)
+  // Add auto-login on mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token && !user) {
       getCurrentUser();
     }
-  }, []);
+  }, [getCurrentUser, user]); // Added dependencies
 
   const value = {
     user,

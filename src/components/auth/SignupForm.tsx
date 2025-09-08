@@ -57,9 +57,9 @@ export default function SignupForm() {
 
     if (!validateForm()) return;
 
-    const success = await signup(email, password);
+    const success = await signup(name, email, password);
     
-    if (success) {
+    if (success && success.user) {
       router.push('/dashboard');
     } else {
       setErrors({ general: 'An account with this email already exists.' });

@@ -214,27 +214,12 @@ export default function DashboardPage() {
               type="text"
               value={watchlistSymbol}
               onChange={(e) => setWatchlistSymbol(e.target.value)}
-              placeholder="e.g., AAPL, GOOGL, TSLA"
-              className="w-full"
               required
             />
           </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowWatchlistModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={watchlistLoading}
-              className="flex-1"
-            >
-              {watchlistLoading ? 'Adding...' : 'Add to Watchlist'}
+          <div className="flex justify-end">
+            <Button type="submit" disabled={watchlistLoading}>
+              Add to Watchlist
             </Button>
           </div>
         </form>
@@ -244,7 +229,7 @@ export default function DashboardPage() {
       <Modal
         isOpen={showHoldingsModal}
         onClose={() => setShowHoldingsModal(false)}
-        title="Add Investment Holding"
+        title="Add Holdings"
       >
         <form onSubmit={handleAddHolding} className="space-y-4">
           <div>
@@ -254,9 +239,7 @@ export default function DashboardPage() {
             <Input
               type="text"
               value={holdingForm.symbol}
-              onChange={(e) => setHoldingForm({...holdingForm, symbol: e.target.value})}
-              placeholder="e.g., AAPL, GOOGL, TSLA"
-              className="w-full"
+              onChange={(e) => setHoldingForm({ ...holdingForm, symbol: e.target.value })}
               required
             />
           </div>
@@ -267,42 +250,24 @@ export default function DashboardPage() {
             <Input
               type="number"
               value={holdingForm.shares}
-              onChange={(e) => setHoldingForm({...holdingForm, shares: e.target.value})}
-              placeholder="e.g., 10"
-              className="w-full"
+              onChange={(e) => setHoldingForm({ ...holdingForm, shares: e.target.value })}
               required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
-              Average Price per Share ($)
+              Average Price per Share
             </label>
             <Input
               type="number"
-              step="0.01"
               value={holdingForm.price}
-              onChange={(e) => setHoldingForm({...holdingForm, price: e.target.value})}
-              placeholder="e.g., 150.00"
-              className="w-full"
+              onChange={(e) => setHoldingForm({ ...holdingForm, price: e.target.value })}
               required
             />
           </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowHoldingsModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={portfolioLoading}
-              className="flex-1"
-            >
-              {portfolioLoading ? 'Adding...' : 'Add Holding'}
+          <div className="flex justify-end">
+            <Button type="submit" disabled={portfolioLoading}>
+              Add Holding
             </Button>
           </div>
         </form>
@@ -322,23 +287,18 @@ export default function DashboardPage() {
             <Input
               type="text"
               value={alertForm.symbol}
-              onChange={(e) => setAlertForm({...alertForm, symbol: e.target.value})}
-              placeholder="e.g., AAPL, GOOGL, TSLA"
-              className="w-full"
+              onChange={(e) => setAlertForm({ ...alertForm, symbol: e.target.value })}
               required
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
-              Target Price ($)
+              Target Price
             </label>
             <Input
               type="number"
-              step="0.01"
               value={alertForm.targetPrice}
-              onChange={(e) => setAlertForm({...alertForm, targetPrice: e.target.value})}
-              placeholder="e.g., 200.00"
-              className="w-full"
+              onChange={(e) => setAlertForm({ ...alertForm, targetPrice: e.target.value })}
               required
             />
           </div>
@@ -348,29 +308,16 @@ export default function DashboardPage() {
             </label>
             <select
               value={alertForm.condition}
-              onChange={(e) => setAlertForm({...alertForm, condition: e.target.value as 'above' | 'below'})}
-              className="w-full p-2 border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors bg-white dark:bg-dark-surface text-gray-900 dark:text-dark-text-primary"
+              onChange={(e) => setAlertForm({ ...alertForm, condition: e.target.value as 'above' | 'below' })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-surface dark:text-dark-text-primary transition-colors"
             >
               <option value="above">Price goes above</option>
               <option value="below">Price goes below</option>
             </select>
           </div>
-          <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowAlertModal(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSettingAlert}
-              className="flex-1"
-            >
-              {isSettingAlert ? 'Setting...' : 'Set Alert'}
+          <div className="flex justify-end">
+            <Button type="submit" isLoading={isSettingAlert}>
+              Set Alert
             </Button>
           </div>
         </form>

@@ -1,25 +1,24 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { email, password } = await request.json();
+    const { name, email, password } = await request.json();
 
     // Validate input
-    if (!email || !password) {
+    if (!name || !email || !password) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: 'Name, email, and password are required' },
         { status: 400 }
       );
     }
 
-    // Check if user exists (email only)
+    // Check if user exists
     const existingUser = await User.findOne({ email });
-
     if (existingUser) {
       return NextResponse.json(
         { error: 'User with this email already exists' },
@@ -27,21 +26,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await User.create({ email, password });
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Create user
+    const user = await User.create({ 
+      name: name.trim(), 
+      email: email.toLowerCase().trim(), 
+      password: hashedPassword 
+      
+    });
+    
+   
     return NextResponse.json(
       {
         message: 'User created successfully',
         user: {
           id: user._id.toString(),
-          email: user.email
+          name: user.name, 
+          email: user.email,
+          createdAt: user.createdAt
         }
       },
       { status: 201 }
     );
   } catch (error: any) {
+    console.error('Signup error:', error);
     return NextResponse.json(
-      { error: error.message },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
