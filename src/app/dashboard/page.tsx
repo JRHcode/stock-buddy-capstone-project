@@ -3,6 +3,7 @@
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useWatchlist } from '@/contexts/WatchlistContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
+import { useAlerts } from '@/contexts/AlertsContext';
 import Modal from '@/components/ui/Modal';
 import Navigation from '@/components/layout/Navigation';
 import Input from '@/components/ui/Input';
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const { isLoading } = useRequireAuth();
   const { watchlist, addToWatchlist, isLoading: watchlistLoading } = useWatchlist();
   const { holdings, addHolding, getTotalValue, getTotalGainLoss, isLoading: portfolioLoading } = usePortfolio();
+  const { addAlert, isLoading: alertsLoading } = useAlerts();
 
   // Modal states
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
@@ -35,6 +37,8 @@ export default function DashboardPage() {
     condition: 'above' as 'above' | 'below'
   });
   const [isSettingAlert, setIsSettingAlert] = useState(false);
+
+  
 
   if (isLoading) {
     return (
@@ -93,18 +97,31 @@ export default function DashboardPage() {
     if (!alertForm.symbol || !alertForm.targetPrice) return;
 
     setIsSettingAlert(true);
+
+    try {
+      // Use the addAlert function from your AlertsContext
+      await addAlert({
+        symbol: alertForm.symbol.toUpperCase(),
+        name: `${alertForm.symbol.toUpperCase()} Company`, // You might want to fetch the actual name
+        targetPrice: parseFloat(alertForm.targetPrice),
+        condition: alertForm.condition,
+        currentPrice: 0 // You can set this to 0 or fetch current price
+      });
+      
+      // Show success message
+      alert(`Alert set for ${alertForm.symbol.toUpperCase()} when price goes ${alertForm.condition} $${alertForm.targetPrice}!`);
+      
+      // Reset form and close modal
+      setAlertForm({ symbol: '', targetPrice: '', condition: 'above' });
+      setShowAlertModal(false);
+      
+    } catch (err: any) {
+      console.error('Error setting alert:', err);
+      alert(err.message || 'Failed to set alert. Please try again.');
+    } finally {
+      setIsSettingAlert(false);
+    }
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Setting alert:', alertForm);
-    
-    setIsSettingAlert(false);
-    setAlertForm({ symbol: '', targetPrice: '', condition: 'above' });
-    setShowAlertModal(false);
-    
-    // Show success message
-    alert(`Alert set for ${alertForm.symbol.toUpperCase()} when price goes ${alertForm.condition} ${alertForm.targetPrice}!`);
   };
 
   // Calculate portfolio stats

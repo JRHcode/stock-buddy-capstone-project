@@ -34,6 +34,10 @@ const userSchema: Schema = new mongoose.Schema({
   timestamps: true
 });
 
+userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
+  return await bcrypt.compare(candidatePassword, this.password);
+}
+
 // Add type for the 'this' context in pre-save hook
 interface UserThisContext {
   password: string;

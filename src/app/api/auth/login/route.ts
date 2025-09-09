@@ -1,23 +1,17 @@
+// src/app/api/auth/login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { User, IUser } from '@/models/User';
+import { User } from '@/models/User';
 import { generateAuthToken } from '@/lib/auth';
-
-// Define a type for user with password
-interface UserWithPassword extends IUser {
-  password: string;
-  name: string; // Add name property
-  email: string;
-  createdAt: Date;
-}
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
-    // Connect to database
     await connectToDatabase();
     
-    // Parse request body
     const { email, password } = await request.json();
+    
+    console.log('🔍 LOGIN ATTEMPT for email:', email);
 
     // Validate input
     if (!email || !password) {
@@ -27,27 +21,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Find user with password field included
-    const user = await User.findOne({ email }).select('+password').exec() as UserWithPassword | null;
+    // Find user with password field included - CRITICAL: use .select('+password')
+    const user = await User.findOne({ email: email.toLowerCase().trim() }).select('+password').exec();
     
-    // Check if user exists and password matches
+    console.log('👤 USER FOUND:', user ? 'Yes' : 'No');
+    if (user) {
+      console.log('📧 User email:', user.email);
+      console.log('🔐 Password hash exists:', !!user.password);
+      console.log('🔐 Password hash starts with:', user.password ? user.password.substring(0, 10) + '...' : 'None');
+    }
+
+    // Check if user exists
     if (!user) {
+      console.log('❌ USER NOT FOUND');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // Verify password
-    const isPasswordValid = await user.comparePassword(password);
+    if (!user.password) {
+      console.log('❌ NO PASSWORD HASH IN USER DOCUMENT');
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    // Verify password using bcrypt.compare
+    console.log('🔑 COMPARING PASSWORDS...');
+    console.log('🔑 Input password:', password);
+    console.log('🔑 Stored hash:', user.password.substring(0, 20) + '...');
+    
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('✅ PASSWORD VALID:', isPasswordValid);
+    
     if (!isPasswordValid) {
+      console.log('❌ PASSWORD MISMATCH - Possible issues:');
+      console.log('   - Different bcrypt salt rounds during signup vs login');
+      console.log('   - Password was not properly hashed during signup');
+      console.log('   - User document was modified manually');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
 
-    // Generate JWT token - convert _id to string
+    console.log('🎯 LOGIN SUCCESSFUL');
+    
+    // Generate JWT token
     const token = generateAuthToken(user._id.toString());
 
     // Return success response with user's name
@@ -55,7 +77,7 @@ export async function POST(request: NextRequest) {
       message: 'Login successful',
       user: {
         id: user._id.toString(),
-        name: user.name, // Added name field
+        name: user.name,
         email: user.email,
         createdAt: user.createdAt
       },
@@ -63,37 +85,11 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Login error:', error);
-    
-    // Handle specific error types
-    if (error.message.includes('JWT_SECRET')) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-    
-    if (error.message.includes('Token verification')) {
-      return NextResponse.json(
-        { error: 'Authentication error' },
-        { status: 500 }
-      );
-    }
-
-    // Generic error response
+    console.error('💥 LOGIN ERROR:', error.message);
+    console.error('💥 ERROR STACK:', error.stack);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
   }
-}
-
-export async function OPTIONS() {
-  return NextResponse.json({}, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
-  });
 }
