@@ -11,6 +11,7 @@ import Button from '@/components/ui/Button';
 import StockSearch from '@/components/stock/StockSearch';
 import { useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import InfoTooltip from '@/components/ui/InfoTooltip';
 
 export default function DashboardPage() {
   const { user } = useAuthContext();
@@ -109,7 +110,7 @@ export default function DashboardPage() {
       });
       
       // Show success message
-      alert(`Alert set for ${alertForm.symbol.toUpperCase()} when price goes ${alertForm.condition} $${alertForm.targetPrice}!`);
+      alert(`Alert set for ${alertForm.symbol.toUpperCase()} when price goes ${alertForm.condition} ${alertForm.targetPrice}!`);
       
       // Reset form and close modal
       setAlertForm({ symbol: '', targetPrice: '', condition: 'above' });
@@ -149,21 +150,42 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {/* Quick Stats Cards */}
             <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg border dark:border-dark-border p-6 transition-colors">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary mb-2 transition-colors">Portfolio Value</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary transition-colors">Portfolio Value</h3>
+                <InfoTooltip 
+                  content="Portfolio Value represents the total current market value of all your stock holdings. 
+                  It's calculated by multiplying the number of shares you own by the current stock price for each holding, then summing them all together.
+                  The dollar value and percentage change for today are displayed."
+                  position="top"
+                />
+              </div>
               <p className="text-3xl font-bold text-green-600 dark:text-green-400 transition-colors">{formatCurrency(totalValue)}</p>
               <p className={`text-sm transition-colors ${totalGainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss)} ({totalGainLossPercent.toFixed(2)}%)
               </p>
+              
             </div>
             
             <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg border dark:border-dark-border p-6 transition-colors">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary mb-2 transition-colors">Watchlist</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary transition-colors">Watchlist</h3>
+                <InfoTooltip 
+                  content="A list of stocks you are tracking. You can add any stock to your watchlist to monitor its performance without owning it."
+                  position="top"
+                />
+              </div>
               <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 transition-colors">{watchlist.length}</p>
               <p className="text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">stocks tracked</p>
             </div>
             
             <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg border dark:border-dark-border p-6 transition-colors">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary mb-2 transition-colors">Holdings</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary transition-colors">Holdings</h3>
+                <InfoTooltip 
+                  content="The investments you currently own. This section tracks the number of shares and the average price paid for each stock."
+                  position="top"
+                />
+              </div>
               <p className="text-3xl font-bold text-purple-600 dark:text-purple-400 transition-colors">{holdings.length}</p>
               <p className="text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">investments</p>
             </div>
@@ -186,7 +208,7 @@ export default function DashboardPage() {
                 <div className="text-center">
                   <div className="text-2xl mb-2">📈</div>
                   <h3 className="font-medium text-gray-900 dark:text-dark-text-primary transition-colors">Add to Watchlist</h3>
-                  <p className="text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">Track your favorite stocks</p>
+                  <p className="text-sm text-gray-500 dark:text-dark-text-black transition-colors">Track your favorite stocks</p>
                 </div>
               </button>
               
@@ -197,7 +219,7 @@ export default function DashboardPage() {
                 <div className="text-center">
                   <div className="text-2xl mb-2">💼</div>
                   <h3 className="font-medium text-gray-900 dark:text-dark-text-primary transition-colors">Add Holdings</h3>
-                  <p className="text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">Record your investments</p>
+                  <p className="text-sm text-gray-500 dark:text-dark-text-black transition-colors">Record your investments</p>
                 </div>
               </button>
               
@@ -208,7 +230,7 @@ export default function DashboardPage() {
                 <div className="text-center">
                   <div className="text-2xl mb-2">🔔</div>
                   <h3 className="font-medium text-gray-900 dark:text-dark-text-primary transition-colors">Set Alert</h3>
-                  <p className="text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">Get notified of price changes</p>
+                  <p className="text-sm text-gray-500 dark:text-dark-text-black transition-colors">Get notified of price changes</p>
                 </div>
               </button>
             </div>
@@ -224,7 +246,7 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleAddToWatchlist} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Stock Symbol
             </label>
             <Input
@@ -250,7 +272,7 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleAddHolding} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Stock Symbol
             </label>
             <Input
@@ -261,7 +283,7 @@ export default function DashboardPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Number of Shares
             </label>
             <Input
@@ -272,7 +294,7 @@ export default function DashboardPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Average Price per Share
             </label>
             <Input
@@ -298,7 +320,7 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleSetAlert} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Stock Symbol
             </label>
             <Input
@@ -309,7 +331,7 @@ export default function DashboardPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Target Price
             </label>
             <Input
@@ -320,7 +342,7 @@ export default function DashboardPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
               Alert Condition
             </label>
             <select

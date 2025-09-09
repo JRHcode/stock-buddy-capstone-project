@@ -91,24 +91,13 @@ export default function StockChart({ symbol }: StockChartProps) {
         console.log('Data length:', historicalData?.length);
         
         if (historicalData && historicalData.length > 0) {
-          const validData = historicalData.filter(item => 
-            !isNaN(item.close) && item.close > 0 && item.date
-          );
-          
-          if (validData.length > 0) {
-            const recentData = validData.slice(-30); // Last 30 days
-            console.log('Processed data for chart:', recentData);
-            if (isMounted) {
-              setData(recentData);
-              setError(null);
-            }
-          } else {
-            console.log('No valid price data, using mock data');
-            const mockData = generateMockData(symbol);
-            if (isMounted) {
-              setData(mockData);
-              setError('Invalid price data received - showing mock data');
-            }
+          // Take only the last 30 days and ensure it's sorted oldest to newest
+          const recentData = historicalData.slice(0, 30).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          console.log('Processed data for chart:', recentData);
+          if (isMounted) {
+            setData(recentData);
+            setError(null);
+            setLoading(false);
           }
         } else {
           console.log('No real data available, using mock data');
@@ -116,6 +105,7 @@ export default function StockChart({ symbol }: StockChartProps) {
           if (isMounted) {
             setData(mockData);
             setError('Real historical data not available - showing mock data');
+            setLoading(false);
           }
         }
       } catch (err) {
@@ -124,9 +114,8 @@ export default function StockChart({ symbol }: StockChartProps) {
           const mockData = generateMockData(symbol);
           setData(mockData);
           setError('API error - showing mock data for demonstration');
+          setLoading(false);
         }
-      } finally {
-        if (isMounted) setLoading(false);
       }
     };
 
@@ -147,7 +136,7 @@ export default function StockChart({ symbol }: StockChartProps) {
   };
 
   const formatPrice = (value: number) => {
-    return `$${value.toFixed(2)}`;
+    return `${value.toFixed(2)}`;
   };
 
   if (loading) {
@@ -236,13 +225,6 @@ export default function StockChart({ symbol }: StockChartProps) {
             />
           </LineChart>
         </ResponsiveContainer>
-      </div>
-      
-      <div className="mt-2 text-xs text-gray-500">
-        Debug: {data.length} data points, 
-        {data.length > 0 ? (
-          ` Price range: $${Math.min(...data.map(d => d.close)).toFixed(2)} - $${Math.max(...data.map(d => d.close)).toFixed(2)}`
-        ) : ' No price data'}
       </div>
     </div>
   );
