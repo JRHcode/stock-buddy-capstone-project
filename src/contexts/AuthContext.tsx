@@ -60,6 +60,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('User set in context:', data.user);
       }
       
+      // ✅ Automatically log user in by storing the token after signup
+      if (data.token) {
+        console.log('Storing token in localStorage after signup:', data.token);
+        localStorage.setItem('token', data.token);
+      }
+
       return data;
     } catch (err: any) {
       console.error('Signup error:', err.message);
@@ -102,8 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return data;
     } catch (err: any) {
-      console.error('Login error:', err.message);
-      setError(err.message);
+      console.log('Login error:', err.message);
+      const errorMessage = err.message || err.toString() || 'Unknown login error';
+      setError(errorMessage);
       return null;
     } finally {
       setLoading(false);
@@ -152,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (token && !user) {
       getCurrentUser();
     }
-  }, [getCurrentUser, user]); // Added dependencies
+  }, [getCurrentUser, user]); 
 
   const value = {
     user,

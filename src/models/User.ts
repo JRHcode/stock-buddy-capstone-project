@@ -34,17 +34,15 @@ const userSchema: Schema = new mongoose.Schema({
   timestamps: true
 });
 
-userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-  return await bcrypt.compare(candidatePassword, this.password);
+// Fix: Add proper typing for this context in methods
+interface UserMethods {
+  comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-// Add type for the 'this' context in pre-save hook
-interface UserThisContext {
-  password: string;
-  isModified(field: string): boolean;
-}
+type UserDocument = IUser & UserMethods;
 
-userSchema.pre('save', async function(this: UserThisContext, next) {
+// Pre-save hook
+userSchema.pre('save', async function(this: UserDocument, next) {
   if (!this.isModified('password')) return next();
   
   try {
@@ -54,8 +52,6 @@ userSchema.pre('save', async function(this: UserThisContext, next) {
   } catch (error: any) {
     next(error);
   }
-
-  
 });
 
 

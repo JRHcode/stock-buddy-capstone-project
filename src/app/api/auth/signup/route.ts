@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
-import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
-    
+
     const { name, email, password } = await request.json();
 
     // Validate input
@@ -17,54 +16,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    if (password.length < 6) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { error: 'Password must be at least 6 characters long' },
         { status: 400 }
       );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 409 }
+      );
+    }
 
-    // Create user
-    const user = await User.create({ 
-      name: name.trim(), 
-      email: email.toLowerCase().trim(), 
-      password: hashedPassword 
-      
+    // Create and save the new user
+    // The pre-save middleware will handle password hashing
+    const newUser = new User({
+      name,
+      email,
+      password, // Pass plain text password - pre-save hook will hash it
     });
-    
-   
-    return NextResponse.json(
-      {
-        message: 'User created successfully',
-        user: {
-          id: user._id.toString(),
-          name: user.name, 
-          email: user.email,
-          createdAt: user.createdAt
-        }
+
+    await newUser.save();
+
+    // Return a success response without sensitive data
+    return NextResponse.json({
+      message: 'User created successfully',
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
       },
-      { status: 201 }
-    );
-  } catch (error: any) {
-    console.error('Signup error:', error);
+    }, { status: 201 });
+
+  } catch (error) {
+    console.error('Signup API Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: 'An internal server error occurred' },
       { status: 500 }
     );
   }
-}
-
-export async function OPTIONS() {
-  return NextResponse.json({}, {
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    }
-  });
 }
