@@ -105,6 +105,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.token) {
         console.log('Storing token in localStorage:', data.token);
         localStorage.setItem('token', data.token);
+        setToken(data.token); // Set token in state
+        console.log('Token set in AuthContext state');
       } else {
         console.warn('No token received in login response');
       }
@@ -159,7 +161,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Add auto-login on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
+    console.log('AuthContext useEffect - storedToken:', !!storedToken, 'user:', !!user);
     if (storedToken && !user) {
+      console.log('Setting token from localStorage and getting current user');
       setToken(storedToken);
       getCurrentUser();
     }

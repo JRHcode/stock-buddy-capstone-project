@@ -10,16 +10,28 @@ export interface IPortfolioHolding {
   purchaseDate: string;
 }
 
+export interface IWatchlistItem {
+  symbol: string;
+  name: string;
+  lastPrice: number;
+  change: number;
+  changePercent: number;
+  addedAt: Date;
+}
+
 export interface IUser extends Document {
   _id: Types.ObjectId;
   name: string;
   email: string;
   password: string;
-  portfolio: IPortfolioHolding[]; // Added this line
+  portfolio: IPortfolioHolding[];
+  watchlist: IWatchlistItem[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
+
+
 
 const userSchema: Schema = new mongoose.Schema({
   name: {
@@ -40,14 +52,28 @@ const userSchema: Schema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  portfolio: [{  
-    id: { type: String, required: true },
-    symbol: { type: String, required: true },
-    name: { type: String, required: true },
-    shares: { type: Number, required: true },
-    avgPrice: { type: Number, required: true },
-    purchaseDate: { type: String, required: true }
-  }]
+  portfolio: {
+    type: [{
+      id: { type: String, required: true },
+      symbol: { type: String, required: true },
+      name: { type: String, required: true },
+      shares: { type: Number, required: true },
+      avgPrice: { type: Number, required: true },
+      purchaseDate: { type: String, required: true }
+    }],
+    default: [] 
+  },
+  watchlist: {
+    type: [{
+      symbol: { type: String, required: true },
+      name: { type: String, required: true },
+      lastPrice: { type: Number, required: true, default: 0 },
+      change: { type: Number, required: true, default: 0 },
+      changePercent: { type: Number, required: true, default: 0 },
+      addedAt: { type: Date, default: Date.now }
+    }],
+    default: []
+  }
 }, {
   timestamps: true
 });

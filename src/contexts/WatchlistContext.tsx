@@ -51,16 +51,23 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
 
   // Load watchlist from database (with localStorage fallback)
   const loadWatchlistFromDatabase = async () => {
+    console.log('loadWatchlistFromDatabase called with user:', !!user, 'token:', !!token);
+    
     if (!user || !token) {
+      console.log('No user or token, setting empty watchlist');
       setWatchlist([]);
       return;
     }
 
     try {
+      console.log('Making GET request to /api/watchlist');
       const response = await makeAuthenticatedRequest('/api/watchlist');
+      console.log('GET watchlist response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('GET watchlist response data:', data);
+        
         const dbStocks = (data.stocks || []).map((stock: any) => ({
           id: stock._id || stock.id || `${stock.symbol}_${Date.now()}`,
           symbol: stock.symbol,
@@ -71,12 +78,13 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
           addedAt: stock.addedAt ? new Date(stock.addedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
         }));
         
-        console.log('Loaded watchlist from database:', dbStocks);
+        console.log('Processed watchlist stocks:', dbStocks);
+        console.log('Setting watchlist with', dbStocks.length, 'stocks');
         setWatchlist(dbStocks);
         
         // Update localStorage as backup
-        const storageKey = getStorageKey();
-        localStorage.setItem(storageKey, JSON.stringify(dbStocks));
+        // const storageKey = getStorageKey();
+        // localStorage.setItem(storageKey, JSON.stringify(dbStocks));
       } else {
         throw new Error('Failed to load watchlist from database');
       }
@@ -84,28 +92,33 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       console.error('Error loading watchlist from database, falling back to localStorage:', error);
       
       // Fall back to localStorage
-      const storageKey = getStorageKey();
-      const savedWatchlist = localStorage.getItem(storageKey);
-      if (savedWatchlist) {
-        try {
-          const parsed = JSON.parse(savedWatchlist);
-          console.log('Loaded watchlist from localStorage (fallback):', parsed);
-          setWatchlist(parsed);
-        } catch (parseError) {
-          console.error('Error parsing localStorage watchlist:', parseError);
-          localStorage.removeItem(storageKey);
-          setWatchlist([]);
-        }
-      } else {
-        setWatchlist([]);
-        console.log('No saved watchlist found for user');
-      }
+      // const storageKey = getStorageKey();
+      // const savedWatchlist = localStorage.getItem(storageKey);
+      // if (savedWatchlist) {
+      //   try {
+      //     const parsed = JSON.parse(savedWatchlist);
+      //     console.log('Loaded watchlist from localStorage (fallback):', parsed);
+      //     setWatchlist(parsed);
+      //   } catch (parseError) {
+      //     console.error('Error parsing localStorage watchlist:', parseError);
+      //     localStorage.removeItem(storageKey);
+      //     setWatchlist([]);
+      //   }
+      // } else {
+      //   setWatchlist([]);
+      //   console.log('No saved watchlist found for user');
+      // }
     }
   };
 
   // Save watchlist to database
   const saveWatchlistToDatabase = async (updatedWatchlist: WatchlistStock[]) => {
-    if (!user || !token) return;
+    if (!user || !token) {
+      console.log('saveWatchlistToDatabase: No user or token, skipping save');
+      return;
+    }
+
+    console.log('saveWatchlistToDatabase called with', updatedWatchlist.length, 'stocks');
 
     try {
       const stocksForDb = updatedWatchlist.map(stock => ({
@@ -117,10 +130,16 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
         addedAt: new Date(stock.addedAt)
       }));
 
-      await makeAuthenticatedRequest('/api/watchlist', {
+      console.log('Sending PUT request to /api/watchlist with data:', stocksForDb);
+
+      const response = await makeAuthenticatedRequest('/api/watchlist', {
         method: 'PUT',
         body: JSON.stringify({ stocks: stocksForDb }),
       });
+
+      console.log('PUT watchlist response status:', response.status);
+      const responseData = await response.json();
+      console.log('PUT watchlist response data:', responseData);
 
       console.log('Watchlist saved to database successfully');
     } catch (error) {
@@ -131,27 +150,34 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
 
   // Load watchlist on mount or when user changes
   useEffect(() => {
+    console.log('WatchlistContext useEffect triggered with user:', !!user, 'token:', !!token);
+    console.log('User details:', user ? { id: user.id, email: user.email } : 'null');
+    
     if (user && token) {
+      console.log('Both user and token present, calling loadWatchlistFromDatabase');
       loadWatchlistFromDatabase();
-    } else {
-      setWatchlist([]); // Clear watchlist when user logs out
+    } else if (user === null && token === null) {
+      // Only clear when explicitly logged out (both user and token are null)
+      console.log('Both user and token are null, clearing watchlist');
+      setWatchlist([]);
       console.log('User logged out, clearing watchlist');
+    } else {
+      console.log('User or token missing - user:', !!user, 'token:', !!token);
     }
   }, [user, token]); // Reload when user or token changes
 
   // Save watchlist to localStorage and database whenever it changes
   useEffect(() => {
-    if (user && watchlist.length >= 0) { // Allow empty arrays to be saved
-      const storageKey = getStorageKey();
-      console.log('Saving watchlist to localStorage:', watchlist);
-      localStorage.setItem(storageKey, JSON.stringify(watchlist));
-      
+    if (user && token && watchlist.length >= 0) { // Require both user and token to be present
       // Also save to database (async, don't wait)
       saveWatchlistToDatabase(watchlist);
     }
-  }, [watchlist, user]); // Save when watchlist or user changes
+  }, [watchlist, user, token]); // Save when watchlist, user, or token changes
 
   const addToWatchlist = async (stock: { symbol: string; name: string; price: number; change: number; changePercent: number }) => {
+    console.log('addToWatchlist called with stock:', stock);
+    console.log('Current user and token state:', { user: !!user, token: !!token });
+    
     if (!user) {
       throw new Error('You must be logged in to add to watchlist');
     }
@@ -179,7 +205,15 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       // Try to add to database first
       try {
         if (token) {
-          await makeAuthenticatedRequest('/api/watchlist', {
+          console.log('Attempting to add stock to database:', {
+            symbol: newStock.symbol,
+            name: newStock.name,
+            lastPrice: newStock.price,
+            change: newStock.change,
+            changePercent: newStock.changePercent
+          });
+          
+          const response = await makeAuthenticatedRequest('/api/watchlist', {
             method: 'POST',
             body: JSON.stringify({
               symbol: newStock.symbol,
@@ -189,10 +223,22 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
               changePercent: newStock.changePercent
             }),
           });
+          
+          console.log('API response status:', response.status);
+          const responseData = await response.json();
+          console.log('API response data:', responseData);
+          
+          if (!response.ok) {
+            throw new Error(`API Error: ${response.status} - ${responseData.error || 'Unknown error'}`);
+          }
+          
           console.log('Stock added to database successfully');
         }
       } catch (dbError) {
         console.error('Error adding to database, continuing with local storage:', dbError);
+        if (dbError instanceof Error) {
+          console.error('Error details:', dbError.message);
+        }
         // Continue with local addition even if database fails
       }
 
@@ -215,7 +261,7 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
     
     if (stockToRemove && token) {
       try {
-        await makeAuthenticatedRequest(`/api/watchlist/${stockToRemove.symbol}`, {
+        await makeAuthenticatedRequest(`/api/watchlist?symbol=${stockToRemove.symbol}`, {
           method: 'DELETE',
         });
         console.log('Stock removed from database successfully');

@@ -73,16 +73,22 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
 
   // Load portfolio from database (with localStorage fallback)
   const loadPortfolioFromDatabase = async () => {
+    console.log('loadPortfolioFromDatabase called with user:', !!user, 'token:', !!token);
+    
     if (!user || !token) {
+      console.log('No user or token, setting empty portfolio');
       setHoldings([]);
       return;
     }
 
     try {
+      console.log('Making GET request to /api/portfolio');
       const response = await makeAuthenticatedRequest('/api/portfolio');
+      console.log('GET portfolio response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
+        console.log('GET portfolio response data:', data);
         const dbHoldings = (data.holdings || []).map((holding: any) => {
           const holdingWithMetrics = calculateHoldingMetrics({
             id: holding._id || holding.id || `${holding.symbol}_${Date.now()}`,
@@ -96,12 +102,13 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
           return holdingWithMetrics;
         });
         
-        console.log('Loaded portfolio from database:', dbHoldings);
+        console.log('Processed portfolio holdings:', dbHoldings);
+        console.log('Setting portfolio with', dbHoldings.length, 'holdings');
         setHoldings(dbHoldings);
         
         // Update localStorage as backup
-        const storageKey = getStorageKey();
-        localStorage.setItem(storageKey, JSON.stringify(dbHoldings));
+        // const storageKey = getStorageKey();
+        // localStorage.setItem(storageKey, JSON.stringify(dbHoldings));
       } else {
         throw new Error('Failed to load portfolio from database');
       }
@@ -109,22 +116,22 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       console.error('Error loading portfolio from database, falling back to localStorage:', error);
       
       // Fall back to localStorage
-      const storageKey = getStorageKey();
-      const savedPortfolio = localStorage.getItem(storageKey);
-      if (savedPortfolio) {
-        try {
-          const parsed = JSON.parse(savedPortfolio);
-          console.log('Loaded portfolio from localStorage (fallback):', parsed);
-          setHoldings(parsed);
-        } catch (parseError) {
-          console.error('Error parsing localStorage portfolio:', parseError);
-          localStorage.removeItem(storageKey);
-          setHoldings([]);
-        }
-      } else {
-        setHoldings([]);
-        console.log('No saved portfolio found for user');
-      }
+      // const storageKey = getStorageKey();
+      // const savedPortfolio = localStorage.getItem(storageKey);
+      // if (savedPortfolio) {
+      //   try {
+      //     const parsed = JSON.parse(savedPortfolio);
+      //     console.log('Loaded portfolio from localStorage (fallback):', parsed);
+      //     setHoldings(parsed);
+      //   } catch (parseError) {
+      //     console.error('Error parsing localStorage portfolio:', parseError);
+      //     localStorage.removeItem(storageKey);
+      //     setHoldings([]);
+      //   }
+      // } else {
+      //   setHoldings([]);
+      //   console.log('No saved portfolio found for user');
+      // }
     }
   };
 
@@ -156,25 +163,29 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
 
   // Load portfolio on mount or when user changes
   useEffect(() => {
+    console.log('PortfolioContext useEffect triggered with user:', !!user, 'token:', !!token);
+    console.log('User details:', user ? { id: user.id, email: user.email } : 'null');
+    
     if (user && token) {
+      console.log('Both user and token present, calling loadPortfolioFromDatabase');
       loadPortfolioFromDatabase();
-    } else {
-      setHoldings([]); // Clear portfolio when user logs out
+    } else if (user === null && token === null) {
+      // Only clear when explicitly logged out (both user and token are null)
+      console.log('Both user and token are null, clearing portfolio');
+      setHoldings([]);
       console.log('User logged out, clearing portfolio');
+    } else {
+      console.log('User or token missing - user:', !!user, 'token:', !!token);
     }
   }, [user, token]); // Reload when user or token changes
 
   // Save portfolio to localStorage and database whenever it changes
   useEffect(() => {
-    if (user && holdings.length >= 0) { // Allow empty arrays to be saved
-      const storageKey = getStorageKey();
-      console.log('Saving portfolio to localStorage:', holdings);
-      localStorage.setItem(storageKey, JSON.stringify(holdings));
-      
+    if (user && token && holdings.length >= 0) { // Require both user and token to be present
       // Also save to database (async, don't wait)
       savePortfolioToDatabase(holdings);
     }
-  }, [holdings, user]); // Save when holdings or user changes
+  }, [holdings, user, token]); // Save when holdings, user, or token changes
 
   const addHolding = async (holding: { symbol: string; name: string; shares: number; avgPrice: number }) => {
     if (!user) {
@@ -235,10 +246,17 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     console.log('Removing holding with id:', id);
     console.log('Current portfolio:', holdings);
     
+    // Find the holding to get its symbol for the API call
+    const holdingToRemove = holdings.find(h => h.id === id);
+    if (!holdingToRemove) {
+      console.error('Holding not found with id:', id);
+      return;
+    }
+    
     // Try to remove from database first
     if (token) {
       try {
-        await makeAuthenticatedRequest(`/api/portfolio?id=${id}`, {
+        await makeAuthenticatedRequest(`/api/portfolio?symbol=${holdingToRemove.symbol}`, {
           method: 'DELETE',
         });
         console.log('Holding removed from database successfully');

@@ -1,61 +1,79 @@
-
 import { NextRequest, NextResponse } from 'next/server';
-import { connectToDatabase } from '@/lib/mongodb';
-import { Watchlist } from '@/models/Watchlist';
 import jwt from 'jsonwebtoken';
+import User from '@/models/User';
+import UserData from '@/models/UserData';
+import { connectToDatabase } from '@/lib/mongodb';
+
+// Helper function to verify JWT token
+const verifyToken = (token: string) => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
+  } catch (error) {
+    throw new Error('Invalid token');
+  }
+};
 
 // Helper function to get user from token
-async function getUserFromToken(request: NextRequest) {
-  try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return null;
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    return decoded.id;
-  } catch (error) {
-    return null;
+const getUserFromToken = (request: NextRequest) => {
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new Error('No token provided');
   }
-}
+  
+  const token = authHeader.substring(7);
+  return verifyToken(token);
+};
 
-// DELETE - Remove stock from watchlist
+// DELETE - Remove stock from watchlist by symbol
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { symbol: string } }
 ) {
   try {
     await connectToDatabase();
+    
+    const { userId } = getUserFromToken(request);
+    const { symbol } = params;
 
-    const userId = await getUserFromToken(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!symbol) {
+      return NextResponse.json(
+        { error: 'Symbol is required' },
+        { status: 400 }
+      );
     }
 
-    const symbol = params.symbol.toUpperCase();
-
-    const watchlist = await Watchlist.findOne({ userId });
-    if (!watchlist) {
-      return NextResponse.json({ error: 'Watchlist not found' }, { status: 404 });
+    // Find UserData document
+    const userData = await UserData.findOne({ userId });
+    if (!userData) {
+      return NextResponse.json({ error: 'User data not found' }, { status: 404 });
     }
 
-    // Remove stock from watchlist
-    const initialLength = watchlist.stocks.length;
-    watchlist.stocks = watchlist.stocks.filter(stock => stock.symbol !== symbol);
+    // Find and remove the stock from watchlist
+    const initialLength = userData.watchlist.length;
+    userData.watchlist = userData.watchlist.filter(
+      (stock: any) => stock.symbol.toUpperCase() !== symbol.toUpperCase()
+    );
 
-    if (watchlist.stocks.length === initialLength) {
-      return NextResponse.json({ error: 'Stock not found in watchlist' }, { status: 404 });
+    // Check if stock was actually removed
+    if (userData.watchlist.length === initialLength) {
+      return NextResponse.json(
+        { error: 'Stock not found in watchlist' },
+        { status: 404 }
+      );
     }
 
-    await watchlist.save();
+    await userData.save();
 
     return NextResponse.json({ 
-      message: 'Stock removed from watchlist',
-      stocks: watchlist.stocks 
+      success: true, 
+      message: 'Stock removed from watchlist' 
     });
-  } catch (error) {
-    console.error('DELETE Watchlist Error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+
+  } catch (error: any) {
+    console.error('Watchlist DELETE error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to remove stock from watchlist' },
+      { status: error.message === 'Invalid token' || error.message === 'No token provided' ? 401 : 500 }
+    );
   }
 }
