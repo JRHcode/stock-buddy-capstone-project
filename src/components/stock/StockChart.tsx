@@ -65,22 +65,10 @@ export default function StockChart({ symbol }: StockChartProps) {
       try {
         console.log(`Fetching historical data for ${symbol}...`);
         
-        // Check if symbol is available on free plan
-        if (!stockApi.isSymbolAvailableOnFreePlan(symbol)) {
-          console.log(`Symbol ${symbol} not available on free plan, using mock data`);
-          const mockData = generateMockData(symbol);
-          if (isMounted) {
-            setData(mockData);
-            setError(`${symbol} not available on free plan - showing mock data`);
-            setLoading(false);
-          }
-          return;
-        }
-        
         // Try to get real historical data with timeout
         const historicalData = await Promise.race([
           stockApi.getHistoricalPrices(symbol),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)) // 5 second timeout
+          new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000)) // 10 second timeout
         ]);
         
         if (!historicalData) {

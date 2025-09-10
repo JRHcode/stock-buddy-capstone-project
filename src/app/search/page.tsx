@@ -7,6 +7,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useWatchlist } from '@/contexts/WatchlistContext';
+import { stockApi } from '@/services/stockApi';
 
 interface SearchResult {
   symbol: string;
@@ -39,33 +40,46 @@ export default function SearchPage() {
 
     setIsSearching(true);
     
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Use Yahoo Finance API to search for stocks
+      const searchResults = await stockApi.searchStocks(searchQuery.trim());
+      
+      // Get quotes for each search result to populate price data
+      const resultsWithPrices = await Promise.all(
+        searchResults.slice(0, 5).map(async (result) => {
+          try {
+            const quote = await stockApi.getStockQuote(result.symbol);
+            return {
+              symbol: result.symbol,
+              name: result.name,
+              price: quote?.price || 0,
+              change: quote?.change || 0,
+              changePercent: quote?.changesPercentage || 0,
+              volume: quote?.volume || 0,
+              marketCap: quote?.marketCap ? formatMarketCap(quote.marketCap) : 'N/A'
+            };
+          } catch (error) {
+            console.error(`Error fetching quote for ${result.symbol}:`, error);
+            return {
+              symbol: result.symbol,
+              name: result.name,
+              price: 0,
+              change: 0,
+              changePercent: 0,
+              volume: 0,
+              marketCap: 'N/A'
+            };
+          }
+        })
+      );
 
-    // Mock search results
-    const mockResults: SearchResult[] = [
-      {
-        symbol: searchQuery.toUpperCase(),
-        name: `${searchQuery.toUpperCase()} Company Inc.`,
-        price: Math.random() * 200 + 50,
-        change: (Math.random() - 0.5) * 10,
-        changePercent: (Math.random() - 0.5) * 5,
-        volume: Math.floor(Math.random() * 10000000),
-        marketCap: `${(Math.random() * 500 + 50).toFixed(1)}B`
-      },
-      {
-        symbol: `${searchQuery.toUpperCase()}2`,
-        name: `${searchQuery.toUpperCase()} Technologies Ltd.`,
-        price: Math.random() * 150 + 30,
-        change: (Math.random() - 0.5) * 8,
-        changePercent: (Math.random() - 0.5) * 4,
-        volume: Math.floor(Math.random() * 8000000),
-        marketCap: `${(Math.random() * 300 + 20).toFixed(1)}B`
-      }
-    ];
-
-    setSearchResults(mockResults);
-    setIsSearching(false);
+      setSearchResults(resultsWithPrices);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleAddToWatchlist = async (stock: SearchResult) => {
@@ -96,6 +110,19 @@ export default function SearchPage() {
 
   const formatNumber = (value: number) => {
     return new Intl.NumberFormat('en-US').format(value);
+  };
+
+  const formatMarketCap = (value: number) => {
+    if (value >= 1e12) {
+      return `${(value / 1e12).toFixed(2)}T`;
+    } else if (value >= 1e9) {
+      return `${(value / 1e9).toFixed(2)}B`;
+    } else if (value >= 1e6) {
+      return `${(value / 1e6).toFixed(2)}M`;
+    } else if (value >= 1e3) {
+      return `${(value / 1e3).toFixed(2)}K`;
+    }
+    return value.toString();
   };
 
   return (
