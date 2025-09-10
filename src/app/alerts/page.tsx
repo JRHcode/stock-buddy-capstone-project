@@ -7,10 +7,12 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
 import { useState } from 'react';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export default function AlertsPage() {
   const { isLoading } = useRequireAuth();
   const { alerts, addAlert, removeAlert, isLoading: alertsLoading } = useAlerts();
+  const { token } = useAuthContext();
   
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAlert, setNewAlert] = useState({
@@ -18,6 +20,8 @@ export default function AlertsPage() {
     targetValue: '',
     condition: 'above' as 'above' | 'below' | 'change'
   });
+  
+  const [testingAlert, setTestingAlert] = useState(false);
 
   if (isLoading) {
     return (
@@ -60,6 +64,147 @@ export default function AlertsPage() {
     }).format(value);
   };
 
+  // Testing functions
+  const testEmailConfiguration = async () => {
+    setTestingAlert(true);
+    try {
+      const response = await fetch('/api/alerts/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'test-email' }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Email configuration is working!');
+      } else {
+        alert('❌ Email configuration failed. Check your environment variables.');
+      }
+    } catch (error) {
+      console.error('Email test error:', error);
+      alert('❌ Failed to test email configuration.');
+    } finally {
+      setTestingAlert(false);
+    }
+  };
+
+  const checkMyAlerts = async () => {
+    setTestingAlert(true);
+    try {
+      const response = await fetch('/api/alerts/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: 'check-user' }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        const { results } = data;
+        alert(`✅ Alert check completed!\n\nChecked: ${results.totalAlertsChecked} alerts\nTriggered: ${results.alertsTriggered} alerts\nEmails sent: ${results.emailsSent}\n\n${results.errors.length > 0 ? 'Errors: ' + results.errors.join(', ') : 'No errors!'}`);
+      } else {
+        alert('❌ Failed to check alerts: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Alert check error:', error);
+      alert('❌ Failed to check alerts.');
+    } finally {
+      setTestingAlert(false);
+    }
+  };
+
+  const simulatePrice = async (symbol: string, price: number) => {
+    if (process.env.NODE_ENV === 'production') {
+      alert('Price simulation is only available in development mode.');
+      return;
+    }
+
+    setTestingAlert(true);
+    try {
+      const response = await fetch('/api/alerts/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          action: 'simulate-price',
+          symbol,
+          targetPrice: price 
+        }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert(`✅ Simulated ${symbol} price to $${price}!\n\nNow run "Check My Alerts" to trigger any matching alerts.`);
+      } else {
+        alert('❌ Failed to simulate price: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Price simulation error:', error);
+      alert('❌ Failed to simulate price.');
+    } finally {
+      setTestingAlert(false);
+    }
+  };
+
+  const testRealPrice = async (symbol: string = 'AAPL') => {
+    setTestingAlert(true);
+    try {
+      const response = await fetch('/api/alerts/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          action: 'test-real-price',
+          symbol 
+        }),
+      });
+      
+      const data = await response.json();
+      if (data.success && data.price) {
+        const { price } = data;
+        alert(`✅ Yahoo Finance API working!\n\n${symbol}: $${price.price}\nChange: ${price.change >= 0 ? '+' : ''}${price.change} (${price.changePercent}%)\nUpdated: ${new Date(price.lastUpdated).toLocaleTimeString()}`);
+      } else {
+        alert(`❌ Failed to fetch real price for ${symbol}: ` + data.message);
+      }
+    } catch (error) {
+      console.error('Real price test error:', error);
+      alert('❌ Failed to test real price fetching.');
+    } finally {
+      setTestingAlert(false);
+    }
+  };
+
+  const clearCache = async () => {
+    setTestingAlert(true);
+    try {
+      const response = await fetch('/api/alerts/check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'clear-cache' }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('✅ Price cache cleared!');
+      } else {
+        alert('❌ Failed to clear cache.');
+      }
+    } catch (error) {
+      console.error('Clear cache error:', error);
+      alert('❌ Failed to clear cache.');
+    } finally {
+      setTestingAlert(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors">
       <Navigation />
@@ -72,6 +217,77 @@ export default function AlertsPage() {
           <p className="mt-2 text-gray-600 dark:text-dark-text-secondary transition-colors">
             Get notified when stocks reach your target prices
           </p>
+        </div>
+
+        {/* Testing Section */}
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-6 border border-yellow-200 dark:border-yellow-800">
+          <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
+            🧪 Testing & Development
+          </h3>
+          <p className="text-yellow-700 dark:text-yellow-300 text-sm mb-4">
+            Test your email alerts and Yahoo Finance API integration
+          </p>
+          
+          {/* First row: Core functionality tests */}
+          <div className="flex flex-wrap gap-3 mb-3">
+            <Button
+              onClick={testEmailConfiguration}
+              disabled={testingAlert}
+              variant="secondary"
+              size="sm"
+              className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 dark:bg-yellow-800/30 dark:text-yellow-200 dark:border-yellow-600"
+            >
+              {testingAlert ? 'Testing...' : 'Test Email Config'}
+            </Button>
+            <Button
+              onClick={() => testRealPrice('AAPL')}
+              disabled={testingAlert}
+              variant="secondary"
+              size="sm"
+              className="bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200 dark:bg-purple-800/30 dark:text-purple-200 dark:border-purple-600"
+            >
+              {testingAlert ? 'Testing...' : 'Test Yahoo Finance (AAPL)'}
+            </Button>
+            <Button
+              onClick={checkMyAlerts}
+              disabled={testingAlert || !token}
+              variant="secondary"
+              size="sm"
+              className="bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200 dark:bg-blue-800/30 dark:text-blue-200 dark:border-blue-600"
+            >
+              {testingAlert ? 'Checking...' : 'Check My Alerts'}
+            </Button>
+            <Button
+              onClick={clearCache}
+              disabled={testingAlert}
+              variant="secondary"
+              size="sm"
+              className="bg-orange-100 text-orange-800 border-orange-300 hover:bg-orange-200 dark:bg-orange-800/30 dark:text-orange-200 dark:border-orange-600"
+            >
+              {testingAlert ? 'Clearing...' : 'Clear Price Cache'}
+            </Button>
+          </div>
+          
+          {/* Second row: Alert trigger tests */}
+          {alerts.length > 0 && (
+            <div>
+              <p className="text-yellow-600 dark:text-yellow-400 text-xs mb-2">Trigger specific alerts:</p>
+              <div className="flex gap-2">
+                {alerts.slice(0, 4).map(alert => (
+                  <Button
+                    key={alert.id}
+                    onClick={() => simulatePrice(alert.symbol, alert.targetValue + 1)}
+                    disabled={testingAlert}
+                    variant="secondary"
+                    size="sm"
+                    className="bg-green-100 text-green-800 border-green-300 hover:bg-green-200 dark:bg-green-800/30 dark:text-green-200 dark:border-green-600"
+                  >
+                    Trigger {alert.symbol}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Add Alert Button */}
