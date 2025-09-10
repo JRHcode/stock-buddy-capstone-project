@@ -17,6 +17,7 @@ interface AuthResponse {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   loading: boolean;
   error: string | null;
   signup: (name: string, email: string, password: string) => Promise<AuthResponse | null>;
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.token) {
         console.log('Storing token in localStorage after signup:', data.token);
         localStorage.setItem('token', data.token);
+        setToken(data.token);
       }
 
       return data;
@@ -155,14 +158,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Add auto-login on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token && !user) {
+    const storedToken = localStorage.getItem('token');
+    if (storedToken && !user) {
+      setToken(storedToken);
       getCurrentUser();
     }
   }, [getCurrentUser, user]); 
 
   const value = {
     user,
+    token,
     loading,
     error,
     signup,

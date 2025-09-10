@@ -55,6 +55,7 @@ export default function DashboardPage() {
   
     try {
       // Create mock stock data for the symbol
+      //Remove the mock data and replace with actual API call
       const mockStock = {
         symbol: watchlistSymbol.toUpperCase(),
         name: `${watchlistSymbol.toUpperCase()} Company`,
