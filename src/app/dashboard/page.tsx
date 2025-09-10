@@ -34,8 +34,8 @@ export default function DashboardPage() {
   });
   const [alertForm, setAlertForm] = useState({
     symbol: '',
-    targetPrice: '',
-    condition: 'above' as 'above' | 'below'
+    targetValue: '',
+    condition: 'above' as 'above' | 'below' | 'change'
   });
   const [isSettingAlert, setIsSettingAlert] = useState(false);
 
@@ -96,7 +96,7 @@ export default function DashboardPage() {
 
   const handleSetAlert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!alertForm.symbol || !alertForm.targetPrice) return;
+    if (!alertForm.symbol || !alertForm.targetValue) return;
 
     setIsSettingAlert(true);
 
@@ -104,17 +104,16 @@ export default function DashboardPage() {
       // Use the addAlert function from your AlertsContext
       await addAlert({
         symbol: alertForm.symbol.toUpperCase(),
-        name: `${alertForm.symbol.toUpperCase()} Company`, // You might want to fetch the actual name
-        targetPrice: parseFloat(alertForm.targetPrice),
+        targetValue: parseFloat(alertForm.targetValue),
         condition: alertForm.condition,
         currentPrice: 0 // You can set this to 0 or fetch current price
       });
       
       // Show success message
-      alert(`Alert set for ${alertForm.symbol.toUpperCase()} when price goes ${alertForm.condition} ${alertForm.targetPrice}!`);
+      alert(`Alert set for ${alertForm.symbol.toUpperCase()} when price goes ${alertForm.condition} ${alertForm.targetValue}!`);
       
       // Reset form and close modal
-      setAlertForm({ symbol: '', targetPrice: '', condition: 'above' });
+      setAlertForm({ symbol: '', targetValue: '', condition: 'above' });
       setShowAlertModal(false);
       
     } catch (err: any) {
@@ -337,8 +336,8 @@ export default function DashboardPage() {
             </label>
             <Input
               type="number"
-              value={alertForm.targetPrice}
-              onChange={(e) => setAlertForm({ ...alertForm, targetPrice: e.target.value })}
+              value={alertForm.targetValue}
+              onChange={(e) => setAlertForm({ ...alertForm, targetValue: e.target.value })}
               required
             />
           </div>
@@ -348,7 +347,7 @@ export default function DashboardPage() {
             </label>
             <select
               value={alertForm.condition}
-              onChange={(e) => setAlertForm({ ...alertForm, condition: e.target.value as 'above' | 'below' })}
+              onChange={(e) => setAlertForm({ ...alertForm, condition: e.target.value as 'above' | 'below' | 'change' })}
               className="w-full px-3 py-2 border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-dark-surface dark:text-dark-text-primary transition-colors"
             >
               <option value="above">Price goes above</option>

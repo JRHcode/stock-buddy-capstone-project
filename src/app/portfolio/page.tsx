@@ -198,7 +198,7 @@ export default function PortfolioPage() {
       >
         <form onSubmit={handleAddHolding} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">
               Stock Symbol
             </label>
             <Input
@@ -211,7 +211,7 @@ export default function PortfolioPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">
               Number of Shares
             </label>
             <Input
@@ -224,7 +224,7 @@ export default function PortfolioPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">
               Average Price per Share ($)
             </label>
             <Input

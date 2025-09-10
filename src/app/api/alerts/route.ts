@@ -3,14 +3,15 @@ import jwt from 'jsonwebtoken';
 import { connectToDatabase } from '@/lib/mongodb';
 import User from '@/models/User';
 
-type WatchlistItem = {
+type Alert = {
   id: string;
   symbol: string;
-  name: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  addedAt: Date;
+  condition: 'above' | 'below' | 'change';
+  targetValue: number;
+  currentValue?: number;
+  isActive: boolean;
+  createdAt: Date;
+  triggeredAt?: Date;
 };
 
 // Helper function to verify JWT token
@@ -33,28 +34,28 @@ const getUserFromToken = (request: NextRequest) => {
   return verifyToken(token);
 };
 
-// GET - Fetch user's watchlist
+// GET - Fetch user's alerts
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     
     const { id: userId } = getUserFromToken(request);
-    console.log('GET Watchlist - User ID:', userId);
+    console.log('GET Alerts - User ID:', userId);
     
-    const user = await User.findById(userId).select('watchlist');
-    console.log('GET Watchlist - User found:', !!user, 'Watchlist length:', user?.watchlist?.length || 0);
+    const user = await User.findById(userId).select('alerts');
+    console.log('GET Alerts - User found:', !!user, 'Alerts length:', user?.alerts?.length || 0);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({ 
       success: true, 
-      stocks: user.watchlist || [] 
+      alerts: user.alerts || [] 
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch watchlist';
-    console.error('Watchlist GET error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch alerts';
+    console.error('Alerts GET error:', error);
     return NextResponse.json(
       { error: errorMessage },
       { status: errorMessage === 'Invalid token' || errorMessage === 'No token provided' ? 401 : 500 }
@@ -62,19 +63,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Add stock to watchlist
+// POST - Add alert
 export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     
     const { id: userId } = getUserFromToken(request);
     const body = await request.json();
-    const { symbol, name, price, change, changePercent } = body;
-    console.log('POST Watchlist - User ID:', userId, 'Data:', { symbol, name, price, change, changePercent });
+    const { symbol, condition, targetValue, currentValue } = body;
+    console.log('POST Alerts - User ID:', userId, 'Data:', { symbol, condition, targetValue, currentValue });
 
-    if (!symbol || !name) {
+    if (!symbol || !condition || !targetValue) {
       return NextResponse.json(
-        { error: 'Symbol and name are required' },
+        { error: 'Symbol, condition, and targetValue are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!['above', 'below', 'change'].includes(condition)) {
+      return NextResponse.json(
+        { error: 'Condition must be above, below, or change' },
         { status: 400 }
       );
     }
@@ -84,47 +92,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Initialize watchlist if it doesn't exist
-    if (!user.watchlist) {
-      user.watchlist = [];
+    // Initialize alerts if it doesn't exist
+    if (!user.alerts) {
+      user.alerts = [];
     }
 
-    // Check if stock already exists in watchlist
-    const existingStock = user.watchlist.find(
-      (stock: WatchlistItem) => stock.symbol.toUpperCase() === symbol.toUpperCase()
-    );
-
-    if (existingStock) {
-      return NextResponse.json(
-        { error: 'Stock already in watchlist' },
-        { status: 400 }
-      );
-    }
-
-    // Add new stock to watchlist
-    const newStock = {
+    // Create new alert
+    const newAlert = {
       id: Date.now().toString(),
       symbol: symbol.toUpperCase(),
-      name,
-      price: price || 0,
-      change: change || 0,
-      changePercent: changePercent || 0,
-      addedAt: new Date()
+      condition,
+      targetValue: Number(targetValue),
+      currentValue: currentValue ? Number(currentValue) : undefined,
+      isActive: true,
+      createdAt: new Date()
     };
 
-    user.watchlist.unshift(newStock); // Add to beginning
+    user.alerts.unshift(newAlert); // Add to beginning
     await user.save();
-    console.log('POST Watchlist - Stock saved, new watchlist length:', user.watchlist.length);
+    console.log('POST Alerts - Alert saved, new alerts length:', user.alerts.length);
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Stock added to watchlist',
-      stock: newStock
+      message: 'Alert added successfully',
+      alert: newAlert
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to add stock to watchlist';
-    console.error('Watchlist POST error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to add alert';
+    console.error('Alerts POST error:', error);
     return NextResponse.json(
       { error: errorMessage },
       { status: errorMessage === 'Invalid token' || errorMessage === 'No token provided' ? 401 : 500 }
@@ -132,18 +128,18 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// PUT - Update entire watchlist
+// PUT - Update entire alerts list
 export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
     
     const { id: userId } = getUserFromToken(request);
     const body = await request.json();
-    const { stocks } = body;
+    const { alerts } = body;
 
-    if (!Array.isArray(stocks)) {
+    if (!Array.isArray(alerts)) {
       return NextResponse.json(
-        { error: 'Stocks must be an array' },
+        { error: 'Alerts must be an array' },
         { status: 400 }
       );
     }
@@ -153,35 +149,37 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Update the entire watchlist
-    user.watchlist = stocks.map((stock: {
+    // Update the entire alerts list
+    user.alerts = alerts.map((alert: {
       id?: string;
       symbol: string;
-      name: string;
-      price?: number;
-      change?: number;
-      changePercent?: number;
-      addedAt?: Date | string;
+      condition: 'above' | 'below' | 'change';
+      targetValue: number;
+      currentValue?: number;
+      isActive?: boolean;
+      createdAt?: Date | string;
+      triggeredAt?: Date | string;
     }) => ({
-      id: stock.id || Date.now().toString(),
-      symbol: stock.symbol.toUpperCase(),
-      name: stock.name,
-      price: stock.price || 0,
-      change: stock.change || 0,
-      changePercent: stock.changePercent || 0,
-      addedAt: stock.addedAt ? new Date(stock.addedAt) : new Date()
+      id: alert.id || Date.now().toString(),
+      symbol: alert.symbol.toUpperCase(),
+      condition: alert.condition,
+      targetValue: Number(alert.targetValue),
+      currentValue: alert.currentValue ? Number(alert.currentValue) : undefined,
+      isActive: alert.isActive !== undefined ? alert.isActive : true,
+      createdAt: alert.createdAt ? new Date(alert.createdAt) : new Date(),
+      triggeredAt: alert.triggeredAt ? new Date(alert.triggeredAt) : undefined
     }));
 
     await user.save();
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Watchlist updated successfully'
+      message: 'Alerts updated successfully'
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to update watchlist';
-    console.error('Watchlist PUT error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update alerts';
+    console.error('Alerts PUT error:', error);
     return NextResponse.json(
       { error: errorMessage },
       { status: errorMessage === 'Invalid token' || errorMessage === 'No token provided' ? 401 : 500 }
@@ -189,18 +187,18 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - Remove stock from watchlist
+// DELETE - Remove alert
 export async function DELETE(request: NextRequest) {
   try {
     await connectToDatabase();
     
     const { id: userId } = getUserFromToken(request);
     const url = new URL(request.url);
-    const symbol = url.searchParams.get('symbol');
+    const alertId = url.searchParams.get('id');
 
-    if (!symbol) {
+    if (!alertId) {
       return NextResponse.json(
-        { error: 'Symbol is required' },
+        { error: 'Alert ID is required' },
         { status: 400 }
       );
     }
@@ -210,20 +208,20 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (!user.watchlist) {
-      return NextResponse.json({ error: 'Watchlist not found' }, { status: 404 });
+    if (!user.alerts) {
+      return NextResponse.json({ error: 'Alerts not found' }, { status: 404 });
     }
 
-    // Find and remove the stock from watchlist
-    const initialLength = user.watchlist.length;
-    user.watchlist = user.watchlist.filter(
-      (stock: WatchlistItem) => stock.symbol.toUpperCase() !== symbol.toUpperCase()
+    // Find and remove the alert
+    const initialLength = user.alerts.length;
+    user.alerts = user.alerts.filter(
+      (alert: Alert) => alert.id !== alertId
     );
 
-    // Check if stock was actually removed
-    if (user.watchlist.length === initialLength) {
+    // Check if alert was actually removed
+    if (user.alerts.length === initialLength) {
       return NextResponse.json(
-        { error: 'Stock not found in watchlist' },
+        { error: 'Alert not found' },
         { status: 404 }
       );
     }
@@ -232,12 +230,12 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: 'Stock removed from watchlist' 
+      message: 'Alert removed successfully' 
     });
 
   } catch (error: unknown) {
-    const errorMessage = error instanceof Error ? error.message : 'Failed to remove stock from watchlist';
-    console.error('Watchlist DELETE error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to remove alert';
+    console.error('Alerts DELETE error:', error);
     return NextResponse.json(
       { error: errorMessage },
       { status: errorMessage === 'Invalid token' || errorMessage === 'No token provided' ? 401 : 500 }

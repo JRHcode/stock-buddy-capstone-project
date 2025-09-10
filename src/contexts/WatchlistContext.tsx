@@ -69,10 +69,10 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
         console.log('GET watchlist response data:', data);
         
         const dbStocks = (data.stocks || []).map((stock: any) => ({
-          id: stock._id || stock.id || `${stock.symbol}_${Date.now()}`,
+          id: stock.id || stock._id || `${stock.symbol}_${Date.now()}`,
           symbol: stock.symbol,
           name: stock.name,
-          price: stock.lastPrice || stock.price || 0,
+          price: stock.price || 0,
           change: stock.change || 0,
           changePercent: stock.changePercent || 0,
           addedAt: stock.addedAt ? new Date(stock.addedAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
@@ -122,9 +122,10 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const stocksForDb = updatedWatchlist.map(stock => ({
+        id: stock.id,
         symbol: stock.symbol,
         name: stock.name,
-        lastPrice: stock.price,
+        price: stock.price,
         change: stock.change,
         changePercent: stock.changePercent,
         addedAt: new Date(stock.addedAt)
@@ -208,7 +209,7 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
           console.log('Attempting to add stock to database:', {
             symbol: newStock.symbol,
             name: newStock.name,
-            lastPrice: newStock.price,
+            price: newStock.price,
             change: newStock.change,
             changePercent: newStock.changePercent
           });
@@ -218,7 +219,7 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
             body: JSON.stringify({
               symbol: newStock.symbol,
               name: newStock.name,
-              lastPrice: newStock.price,
+              price: newStock.price,
               change: newStock.change,
               changePercent: newStock.changePercent
             }),

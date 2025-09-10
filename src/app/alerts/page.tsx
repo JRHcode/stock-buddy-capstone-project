@@ -15,8 +15,8 @@ export default function AlertsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAlert, setNewAlert] = useState({
     symbol: '',
-    targetPrice: '',
-    condition: 'above' as 'above' | 'below'
+    targetValue: '',
+    condition: 'above' as 'above' | 'below' | 'change'
   });
 
   if (isLoading) {
@@ -29,18 +29,17 @@ export default function AlertsPage() {
 
   const handleAddAlert = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAlert.symbol || !newAlert.targetPrice) return;
+    if (!newAlert.symbol || !newAlert.targetValue) return;
   
     try {
       await addAlert({
         symbol: newAlert.symbol.toUpperCase(),
-        name: `${newAlert.symbol.toUpperCase()} Company`, // Add company name
-        targetPrice: parseFloat(newAlert.targetPrice),
+        targetValue: parseFloat(newAlert.targetValue),
         condition: newAlert.condition,
-        currentPrice: 0 // Initialize with 0, will be updated by the context
+        currentValue: 0 // Initialize with 0, will be updated by the context
       });
       
-      setNewAlert({ symbol: '', targetPrice: '', condition: 'above' });
+      setNewAlert({ symbol: '', targetValue: '', condition: 'above' });
       setShowAddModal(false);
     } catch (error) {
       console.error('Error adding alert:', error);
@@ -130,10 +129,10 @@ export default function AlertsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">
-                    {formatCurrency(alert.targetPrice)}
+                    {formatCurrency(alert.targetValue)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">
-                    {formatCurrency(alert.currentPrice || 0)}
+                    {formatCurrency(alert.currentValue || 0)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
@@ -178,7 +177,7 @@ export default function AlertsPage() {
       >
         <form onSubmit={handleAddAlert} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1 transition-colors">
               Stock Symbol
             </label>
             <Input
@@ -191,21 +190,21 @@ export default function AlertsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1 transition-colors">
               Target Price ($)
             </label>
             <Input
               type="number"
               step="0.01"
-              value={newAlert.targetPrice}
-              onChange={(e) => setNewAlert({...newAlert, targetPrice: e.target.value})}
+              value={newAlert.targetValue}
+              onChange={(e) => setNewAlert({...newAlert, targetValue: e.target.value})}
               placeholder="e.g., 200.00"
               className="w-full"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text-primary mb-1 transition-colors">
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1 transition-colors">
               Alert Condition
             </label>
             <select

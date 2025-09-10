@@ -125,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     console.log('Logging out user');
     setUser(null);
+    setToken(null); // Clear token from state
     localStorage.removeItem('token');
   }, []);
 

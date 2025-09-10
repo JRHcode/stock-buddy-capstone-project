@@ -11,9 +11,10 @@ export interface IPortfolioHolding {
 }
 
 export interface IWatchlistItem {
+  id: string;
   symbol: string;
   name: string;
-  lastPrice: number;
+  price: number;
   change: number;
   changePercent: number;
   addedAt: Date;
@@ -26,10 +27,22 @@ export interface IUser extends Document {
   password: string;
   portfolio: IPortfolioHolding[];
   watchlist: IWatchlistItem[];
+  alerts: IAlert[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
+
+export interface IAlert {
+    id: string;
+    symbol: string;
+    condition: 'above' | 'below' | 'change';
+    targetValue: number;
+    currentValue?: number;
+    isActive: boolean;
+    createdAt: Date;
+    triggeredAt?: Date;
+  }
 
 
 
@@ -65,12 +78,26 @@ const userSchema: Schema = new mongoose.Schema({
   },
   watchlist: {
     type: [{
+      id: { type: String, required: true },
       symbol: { type: String, required: true },
       name: { type: String, required: true },
-      lastPrice: { type: Number, required: true, default: 0 },
+      price: { type: Number, required: true, default: 0 },
       change: { type: Number, required: true, default: 0 },
       changePercent: { type: Number, required: true, default: 0 },
       addedAt: { type: Date, default: Date.now }
+    }],
+    default: []
+  },
+  alerts: {
+    type: [{
+      id: { type: String, required: true },
+      symbol: { type: String, required: true },
+      condition: { type: String, enum: ['above', 'below', 'change'], required: true },
+      targetValue: { type: Number, required: true },
+      currentValue: { type: Number },
+      isActive: { type: Boolean, default: true },
+      createdAt: { type: Date, default: Date.now },
+      triggeredAt: { type: Date }
     }],
     default: []
   }
