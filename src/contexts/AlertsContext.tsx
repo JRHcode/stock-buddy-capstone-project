@@ -33,7 +33,7 @@ interface AlertsProviderProps {
 export function AlertsProvider({ children }: AlertsProviderProps) {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { user, token } = useAuthContext(); // Get current user and token from auth
+  const { user, token, initializing } = useAuthContext(); // Get current user, token, and initializing state from auth
 
   // Helper function to make authenticated API requests
   const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
@@ -132,21 +132,27 @@ export function AlertsProvider({ children }: AlertsProviderProps) {
 
   // Load alerts on mount or when user changes
   useEffect(() => {
-    console.log('AlertsContext useEffect triggered with user:', !!user, 'token:', !!token);
+    console.log('AlertsContext useEffect triggered with user:', !!user, 'token:', !!token, 'initializing:', initializing);
     console.log('User details:', user ? { id: user.id, email: user.email } : 'null');
+    
+    // Don't do anything while AuthContext is still initializing
+    if (initializing) {
+      console.log('Auth is still initializing, waiting...');
+      return;
+    }
     
     if (user && token) {
       console.log('Both user and token present, calling loadAlertsFromDatabase');
       loadAlertsFromDatabase();
     } else if (user === null && token === null) {
-      // Only clear when explicitly logged out (both user and token are null)
-      console.log('Both user and token are null, clearing alerts');
+      // Only clear when explicitly logged out (both user and token are null) AND not initializing
+      console.log('Both user and token are null and not initializing, clearing alerts');
       setAlerts([]);
       console.log('User logged out, clearing alerts');
     } else {
       console.log('User or token missing - user:', !!user, 'token:', !!token);
     }
-  }, [user, token]); // Reload when user or token changes
+  }, [user, token, initializing]); // Reload when user, token, or initializing changes
 
   // Fetch current prices when alerts are first loaded
   useEffect(() => {
@@ -206,11 +212,14 @@ export function AlertsProvider({ children }: AlertsProviderProps) {
 
   // Save alerts to database whenever it changes
   useEffect(() => {
+    // Don't save during initialization or if user/token not ready
+    if (initializing) return;
+    
     if (user && token && alerts.length >= 0) { // Require both user and token to be present
       // Save to database (async, don't wait)
       saveAlertsToDatabase(alerts);
     }
-  }, [alerts, user, token]); // Save when alerts, user, or token changes
+  }, [alerts, user, token, initializing]); // Save when alerts, user, token, or initializing changes
 
   const addAlert = async (alertData: Omit<Alert, 'id' | 'createdAt' | 'isActive'>) => {
     console.log('addAlert called with alertData:', alertData);
