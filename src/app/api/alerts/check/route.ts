@@ -7,7 +7,7 @@ import { simulatePriceMovement, getStockPrice, clearPriceCache, getCacheStatus }
 // Helper function to verify JWT token (for user-specific checks)
 const verifyToken = (token: string) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
   } catch {
     throw new Error('Invalid token');
   }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       case 'check-user':
         // Check alerts for a specific user (authenticated)
         try {
-          const { id: authenticatedUserId } = getUserFromToken(request);
+          const { userId: authenticatedUserId } = getUserFromToken(request);
           const userIdToCheck = userId || authenticatedUserId;
           
           // Users can only check their own alerts unless they're admin
