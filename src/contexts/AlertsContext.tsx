@@ -94,6 +94,42 @@ export function AlertsProvider({ children }: AlertsProviderProps) {
     }
   };
 
+  // Function to fetch current prices for all alerts
+  const fetchCurrentPrices = async () => {
+    if (!alerts.length) return;
+
+    console.log('Fetching current prices for', alerts.length, 'alerts');
+    const updatedAlerts = await Promise.all(
+      alerts.map(async (alert) => {
+        try {
+          const response = await fetch('/api/alerts/check', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'test-real-price',
+              symbol: alert.symbol
+            }),
+          });
+
+          const data = await response.json();
+          if (data.success && data.price) {
+            return {
+              ...alert,
+              currentValue: data.price.price
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch price for ${alert.symbol}:`, error);
+        }
+        return alert;
+      })
+    );
+
+    setAlerts(updatedAlerts);
+  };
+
   // Load alerts on mount or when user changes
   useEffect(() => {
     console.log('AlertsContext useEffect triggered with user:', !!user, 'token:', !!token);
@@ -111,6 +147,24 @@ export function AlertsProvider({ children }: AlertsProviderProps) {
       console.log('User or token missing - user:', !!user, 'token:', !!token);
     }
   }, [user, token]); // Reload when user or token changes
+
+  // Fetch current prices when alerts are first loaded
+  useEffect(() => {
+    if (alerts.length > 0 && alerts.some(alert => alert.currentValue === undefined || alert.currentValue === 0)) {
+      fetchCurrentPrices();
+    }
+  }, [alerts.length]); // Only trigger when the number of alerts changes
+
+  // Add periodic price updates (every 5 minutes)
+  useEffect(() => {
+    if (alerts.length === 0) return;
+
+    const interval = setInterval(() => {
+      fetchCurrentPrices();
+    }, 5 * 60 * 1000); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [alerts.length]);
 
   // Save alerts to database
   const saveAlertsToDatabase = async (updatedAlerts: Alert[]) => {

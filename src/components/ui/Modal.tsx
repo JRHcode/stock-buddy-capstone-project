@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import Button from './Button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -48,6 +47,7 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
                 {title}
               </h3>
               <button
+                type="button"
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-600"
               >

@@ -39,8 +39,7 @@ export default function AlertsPage() {
       await addAlert({
         symbol: newAlert.symbol.toUpperCase(),
         targetValue: parseFloat(newAlert.targetValue),
-        condition: newAlert.condition,
-        currentValue: 0 // Initialize with 0, will be updated by the context
+        condition: newAlert.condition
       });
       
       setNewAlert({ symbol: '', targetValue: '', condition: 'above' });
@@ -348,7 +347,8 @@ export default function AlertsPage() {
                     {formatCurrency(alert.targetValue)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-dark-text-secondary transition-colors">
-                    {formatCurrency(alert.currentValue || 0)}
+                    {alert.currentValue ? formatCurrency(alert.currentValue) : 
+                     <span className="text-gray-400 italic">Loading...</span>}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${

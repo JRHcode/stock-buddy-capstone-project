@@ -9,20 +9,24 @@ import Navigation from '@/components/layout/Navigation';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import StockSearch from '@/components/stock/StockSearch';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import InfoTooltip from '@/components/ui/InfoTooltip';
+import DropdownWatchlist from '@/components/watchlist/DropdownWatchlist';
+import { getTop30MarketCap, MarketCapStock } from '@/data/top30MarketCap';
+import { WeekHighStock } from '@/data/52WeekHighs';
 
 export default function DashboardPage() {
   const { user } = useAuthContext();
   const { isLoading } = useRequireAuth();
   const { watchlist, addToWatchlist, isLoading: watchlistLoading } = useWatchlist();
   const { holdings, addHolding, getTotalValue, getTotalGainLoss, isLoading: portfolioLoading } = usePortfolio();
-  const { addAlert, isLoading: alertsLoading } = useAlerts();
+  const { addAlert } = useAlerts();
 
   // Modal states
   const [showWatchlistModal, setShowWatchlistModal] = useState(false);
   const [showHoldingsModal, setShowHoldingsModal] = useState(false);
+  const [showMarketCapHoldingsModal, setShowMarketCapHoldingsModal] = useState(false);
   const [showAlertModal, setShowAlertModal] = useState(false);
 
   // Form states
@@ -38,6 +42,57 @@ export default function DashboardPage() {
     condition: 'above' as 'above' | 'below' | 'change'
   });
   const [isSettingAlert, setIsSettingAlert] = useState(false);
+
+  // Top 30 Market Cap state
+  const [top30Stocks, setTop30Stocks] = useState<MarketCapStock[]>([]);
+  const [isLoadingTop30, setIsLoadingTop30] = useState(true);
+  const [selectedMarketCapStock, setSelectedMarketCapStock] = useState<MarketCapStock | null>(null);
+  const [marketCapHoldingShares, setMarketCapHoldingShares] = useState('');
+
+  // 52 Week Highs state
+  const [weekHighStocks, setWeekHighStocks] = useState<WeekHighStock[]>([]);
+  const [isLoadingWeekHighs, setIsLoadingWeekHighs] = useState(true);
+
+  // Load Top 30 Market Cap data
+  useEffect(() => {
+    const loadTop30Data = async () => {
+      try {
+        setIsLoadingTop30(true);
+        const data = await getTop30MarketCap();
+        setTop30Stocks(data);
+      } catch (error) {
+        console.error('Error loading Top 30 Market Cap data:', error);
+      } finally {
+        setIsLoadingTop30(false);
+      }
+    };
+
+    loadTop30Data();
+  }, []);
+
+  // Load 52 Week Highs data
+  useEffect(() => {
+    const load52WeekHighsData = async () => {
+      try {
+        setIsLoadingWeekHighs(true);
+        const response = await fetch('/api/market-data/52-week-highs');
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('52 Week Highs data received:', result.data);
+          setWeekHighStocks(result.data);
+        } else {
+          console.error('Failed to load 52-week highs:', result.error);
+        }
+      } catch (error) {
+        console.error('Error loading 52-week highs data:', error);
+      } finally {
+        setIsLoadingWeekHighs(false);
+      }
+    };
+
+    load52WeekHighsData();
+  }, []);
 
   
 
@@ -102,11 +157,11 @@ export default function DashboardPage() {
 
     try {
       // Use the addAlert function from your AlertsContext
+      
       await addAlert({
         symbol: alertForm.symbol.toUpperCase(),
         targetValue: parseFloat(alertForm.targetValue),
-        condition: alertForm.condition,
-        currentPrice: 0 // You can set this to 0 or fetch current price
+        condition: alertForm.condition
       });
       
       // Show success message
@@ -124,6 +179,65 @@ export default function DashboardPage() {
     }
     
   };
+
+  // Handler for adding stock to watchlist (works with any stock type)
+  const handleStockAddToWatchlist = async (stock: any) => {
+    try {
+      const watchlistStock = {
+        symbol: stock.symbol,
+        name: stock.name,
+        price: stock.price,
+        change: stock.change,
+        changePercent: stock.changePercent
+      };
+      
+      await addToWatchlist(watchlistStock);
+      alert(`${stock.symbol} added to your watchlist!`);
+    } catch (error) {
+      console.error('Error adding to watchlist:', error);
+      alert('Failed to add stock to watchlist. Please try again.');
+    }
+  };
+
+  // Handler for adding stock to holdings (works with any stock type)
+  const handleStockAddToHoldings = (stock: any) => {
+    // Convert to MarketCapStock format for the modal
+    const marketCapStock = {
+      symbol: stock.symbol,
+      name: stock.name,
+      price: stock.price,
+      change: stock.change,
+      changePercent: stock.changePercent,
+      marketCap: stock.marketCap || 0
+    };
+    setSelectedMarketCapStock(marketCapStock);
+    setShowMarketCapHoldingsModal(true);
+  };
+
+  // Handler for simplified holdings modal submission
+  const handleMarketCapHoldingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedMarketCapStock || !marketCapHoldingShares) return;
+
+    try {
+      await addHolding({
+        symbol: selectedMarketCapStock.symbol,
+        name: selectedMarketCapStock.name,
+        shares: parseFloat(marketCapHoldingShares),
+        avgPrice: selectedMarketCapStock.price // Use current price as average price
+      });
+      
+      setMarketCapHoldingShares('');
+      setSelectedMarketCapStock(null);
+      setShowMarketCapHoldingsModal(false);
+      alert(`${selectedMarketCapStock.symbol} added to your holdings!`);
+      
+    } catch (err) {
+      console.error('Error adding holding:', err);
+      alert('Failed to add holding. Please try again.');
+    }
+  };
+
 
   // Calculate portfolio stats
   const totalValue = getTotalValue();
@@ -196,12 +310,42 @@ export default function DashboardPage() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-4 transition-colors">Search Stocks</h2>
             <StockSearch />
           </div>
+
+          {/* Top 30 Market Cap Watchlist */}
+          <div className="flex justify-center mb-8">
+            <div className="w-full max-w-4xl">
+              <DropdownWatchlist
+                title="Market 30"
+                tooltip="These are the 30 largest companies in the S&P 500 by market cap."
+                stocks={top30Stocks}
+                isLoading={isLoadingTop30}
+                onAddToWatchlist={handleStockAddToWatchlist}
+                onAddToHoldings={handleStockAddToHoldings}
+              />
+            </div>
+          </div>
+
+          {/* 52 Week Highs Watchlist */}
+          <div className="flex justify-center mb-8">
+            <div className="w-full max-w-4xl">
+              <DropdownWatchlist
+                title="52 Week Highs"
+                tooltip="Stocks within 5% of their 52-week high price, with volume ≥100,000 and current price ≥$25. Updated with real-time Yahoo Finance data."
+                stocks={weekHighStocks}
+                isLoading={isLoadingWeekHighs}
+                onAddToWatchlist={handleStockAddToWatchlist}
+                onAddToHoldings={handleStockAddToHoldings}
+                icon="📈"
+              />
+            </div>
+          </div>
           
           {/* Quick Actions */}
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg border dark:border-dark-border p-6 transition-colors">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-4 transition-colors">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <button 
+                type="button"
                 onClick={() => setShowWatchlistModal(true)}
                 className="p-4 border-2 border-dashed border-gray-300 dark:border-dark-border rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
@@ -213,6 +357,7 @@ export default function DashboardPage() {
               </button>
               
               <button 
+                type="button"
                 onClick={() => setShowHoldingsModal(true)}
                 className="p-4 border-2 border-dashed border-gray-300 dark:border-dark-border rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
@@ -224,6 +369,7 @@ export default function DashboardPage() {
               </button>
               
               <button 
+                type="button"
                 onClick={() => setShowAlertModal(true)}
                 className="p-4 border-2 border-dashed border-gray-300 dark:border-dark-border rounded-lg hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
               >
@@ -360,6 +506,77 @@ export default function DashboardPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Market Cap Holdings Modal - Simplified */}
+      <Modal
+        isOpen={showMarketCapHoldingsModal}
+        onClose={() => {
+          setShowMarketCapHoldingsModal(false);
+          setSelectedMarketCapStock(null);
+          setMarketCapHoldingShares('');
+        }}
+        title={`Add ${selectedMarketCapStock?.symbol} to Holdings`}
+      >
+        {selectedMarketCapStock && (
+          <div className="space-y-4">
+            {/* Stock Info Display */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-dark-text-primary">
+                    {selectedMarketCapStock.symbol}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-dark-text-secondary">
+                    {selectedMarketCapStock.name}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-lg text-gray-900 dark:text-dark-text-primary">
+                    {formatCurrency(selectedMarketCapStock.price)}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-dark-text-secondary">
+                    Current Price
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleMarketCapHoldingSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-dark-black mb-1 transition-colors">
+                  Number of Shares
+                </label>
+                <Input
+                  type="number"
+                  value={marketCapHoldingShares}
+                  onChange={(e) => setMarketCapHoldingShares(e.target.value)}
+                  placeholder="Enter number of shares"
+                  required
+                />
+                <p className="text-xs text-gray-500 dark:text-black mt-1">
+                  Average price will be set to current market price: {formatCurrency(selectedMarketCapStock.price)}
+                </p>
+              </div>
+              <div className="flex justify-end space-x-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowMarketCapHoldingsModal(false);
+                    setSelectedMarketCapStock(null);
+                    setMarketCapHoldingShares('');
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={portfolioLoading}>
+                  Add to Holdings
+                </Button>
+              </div>
+            </form>
+          </div>
+        )}
       </Modal>
     </div>
   );

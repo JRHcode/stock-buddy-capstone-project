@@ -195,11 +195,8 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     
     try {
-      // Check if holding already exists in portfolio
-      const existingHolding = holdings.find(h => h.symbol.toUpperCase() === holding.symbol.toUpperCase());
-      if (existingHolding) {
-        throw new Error(`${holding.symbol} is already in your portfolio`);
-      }
+      // Allow multiple holdings of the same stock (removed duplicate check)
+      // Users can add multiple "legs" or positions of the same stock
 
       // Try to add to database first
       try {

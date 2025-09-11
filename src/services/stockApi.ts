@@ -234,10 +234,25 @@ class StockApiService {
     }
   }
 
-  // Note: News functionality not implemented yet
+  // Fetch financial news from our API
   async getNews(page: number = 0, limit: number = 20): Promise<NewsArticle[]> {
-    console.warn('Client: News functionality not yet implemented');
-    return [];
+    try {
+      const response = await fetch('/api/news');
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Apply pagination on client side for now
+        const startIndex = page * limit;
+        const endIndex = startIndex + limit;
+        return result.data.slice(startIndex, endIndex);
+      } else {
+        // Return fallback data if API fails
+        return result.data || [];
+      }
+    } catch (error) {
+      console.error('Error fetching news:', error);
+      return [];
+    }
   }
 }
 

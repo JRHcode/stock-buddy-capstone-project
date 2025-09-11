@@ -38,6 +38,7 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
     <div className={`relative inline-block ${className}`}>
       {/* Info Icon */}
       <button
+        type="button"
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
         onFocus={() => setIsVisible(true)}
@@ -53,7 +54,7 @@ const InfoTooltip: React.FC<InfoTooltipProps> = ({
       {isVisible && (
         <div className="absolute z-50" style={{ right: position === 'top' || position === 'bottom' ? '-50%' : 'auto' }}>
           <div className={`relative ${getTooltipPosition()}`}>
-            <div className="bg-gray-900 bg-opacity-75 text-white text-sm rounded-lg px-3 py-2 max-w-md w-max whitespace-normal shadow-lg backdrop-blur-sm">
+            <div className="bg-gray-900 bg-opacity-75 text-white text-sm rounded-lg px-3 py-2 max-w-md w-max whitespace-normal shadow-lg backdrop-blur-sm border border-blue-300">
               {content}
             </div>
             {/* Arrow */}

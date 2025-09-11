@@ -9,12 +9,14 @@ import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useWatchlist } from '@/contexts/WatchlistContext';
 import { usePortfolio } from '@/contexts/PortfolioContext';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useAlerts } from '@/contexts/AlertsContext';
 
 export default function WatchlistPage() {
   const { user } = useAuthContext();
   const { isLoading } = useRequireAuth();
   const { watchlist, addToWatchlist, removeFromWatchlist, isLoading: watchlistLoading } = useWatchlist();
   const { addHolding, isLoading: portfolioLoading } = usePortfolio();
+  const { addAlert, isLoading: alertsLoading } = useAlerts();
   
   const [newSymbol, setNewSymbol] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -25,6 +27,14 @@ export default function WatchlistPage() {
   const [holdingForm, setHoldingForm] = useState({
     shares: '',
     price: ''
+  });
+
+  // Modal state for adding alerts
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [selectedAlertStock, setSelectedAlertStock] = useState<any>(null);
+  const [alertForm, setAlertForm] = useState({
+    targetValue: '',
+    condition: 'above' as 'above' | 'below'
   });
 
   if (isLoading) {
@@ -101,6 +111,34 @@ export default function WatchlistPage() {
     }
   };
 
+  const handleAddAlert = (stock: any) => {
+    setSelectedAlertStock(stock);
+    setAlertForm({ targetValue: '', condition: 'above' });
+    setShowAlertModal(true);
+  };
+
+  const handleAlertSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAlertStock || !alertForm.targetValue) return;
+
+    try {
+      await addAlert({
+        symbol: selectedAlertStock.symbol,
+        targetValue: parseFloat(alertForm.targetValue),
+        condition: alertForm.condition
+      });
+      
+      setShowAlertModal(false);
+      setSelectedAlertStock(null);
+      setAlertForm({ targetValue: '', condition: 'above' });
+      
+      alert(`Successfully created alert for ${selectedAlertStock.symbol}!`);
+    } catch (err) {
+      console.error('Error adding alert:', err);
+      alert('Failed to add alert. Please try again.');
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -167,9 +205,6 @@ export default function WatchlistPage() {
                           <div>
                             <h3 className="font-semibold text-gray-900 dark:text-dark-text-primary">{stock.symbol}</h3>
                             <p className="text-sm text-gray-600 dark:text-dark-text-secondary">{stock.name}</p>
-                            <p className="text-xs text-gray-500 dark:text-dark-text-secondary">Added {stock.addedAt}</p>
-                            {/* Debug info */}
-                            <p className="text-xs text-gray-400 dark:text-dark-text-secondary">ID: {stock.id}</p>
                           </div>
                         </div>
                       </div>
@@ -183,21 +218,27 @@ export default function WatchlistPage() {
                           </p>
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex flex-col space-y-2">
                           <Button
                             onClick={() => handleAddToHoldings(stock)}
-                            variant="primary"
                             size="sm"
-                            className="bg-blue-600 text-white hover:bg-blue-700 hover:text-yellow-400 border border-blue-600 hover:border-blue-700 transition-colors"
+                            className="text-xs px-2 py-1"
                           >
-                            Add to Holdings
+                            + Holdings
                           </Button>
-                          
+                          <Button
+                            onClick={() => handleAddAlert(stock)}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs px-2 py-1"
+                          >
+                            + Alert
+                          </Button>
                           <Button
                             onClick={() => handleRemoveStock(stock.id, stock.symbol)}
                             variant="secondary"
                             size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-xs px-2 py-1"
                           >
                             Remove
                           </Button>
@@ -262,6 +303,61 @@ export default function WatchlistPage() {
               className="flex-1"
             >
               {portfolioLoading ? 'Adding...' : 'Add to Portfolio'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Add Alert Modal */}
+      <Modal
+        isOpen={showAlertModal}
+        onClose={() => setShowAlertModal(false)}
+        title={`Set Alert for ${selectedAlertStock?.symbol}`}
+      >
+        <form onSubmit={handleAlertSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">
+              Target Price ($)
+            </label>
+            <Input
+              type="number"
+              step="0.01"
+              value={alertForm.targetValue}
+              onChange={(e) => setAlertForm({...alertForm, targetValue: e.target.value})}
+              placeholder="e.g., 200.00"
+              className="w-full"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-black mb-1">
+              Alert Condition
+            </label>
+            <select
+              value={alertForm.condition}
+              onChange={(e) => setAlertForm({...alertForm, condition: e.target.value as 'above' | 'below'})}
+              className="w-full p-2 border border-gray-300 dark:border-dark-border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-dark-surface text-gray-900 dark:text-dark-text-primary transition-colors"
+            >
+              <option value="above">Price goes above</option>
+              <option value="below">Price goes below</option>
+            </select>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowAlertModal(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={alertsLoading}
+              className="flex-1"
+            >
+              {alertsLoading ? 'Adding...' : 'Create Alert'}
             </Button>
           </div>
         </form>
