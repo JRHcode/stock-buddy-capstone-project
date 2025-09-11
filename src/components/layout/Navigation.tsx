@@ -13,6 +13,7 @@ export default function Navigation() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -37,6 +38,10 @@ export default function Navigation() {
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
   return (
@@ -136,13 +141,90 @@ export default function Navigation() {
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <button type="button" className="p-2 rounded-md text-gray-500 dark:text-dark-text-secondary hover:text-gray-700 dark:hover:text-dark-text-primary hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
+            <button 
+              type="button" 
+              onClick={toggleMobileMenu}
+              className="p-2 rounded-md text-gray-500 dark:text-dark-text-secondary hover:text-gray-700 dark:hover:text-dark-text-primary hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isMobileMenuOpen ? (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white dark:bg-dark-surface border-t dark:border-dark-border">
+            <div className="px-2 pt-2 pb-3 space-y-1">
+              <Link
+                href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/portfolio"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                Portfolio
+              </Link>
+              <Link
+                href="/watchlist"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                Watchlist
+              </Link>
+              <Link
+                href="/alerts"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                Alerts
+              </Link>
+              <Link
+                href="/news"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                News
+              </Link>
+              <Link
+                href="/about"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                About
+              </Link>
+              <Link
+                href="/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                {user?.name || 'Profile'}
+              </Link>
+              <button
+                onClick={() => {
+                  handleLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 dark:text-red-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
