@@ -11,7 +11,9 @@ export default function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
-  const { login, loading } = useAuthContext();
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const { login, loading, error: authError } = useAuthContext();
   const router = useRouter();
 
   const validateForm = () => {
@@ -33,9 +35,35 @@ export default function LoginForm() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    setErrors({});
+    
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setErrors({ general: 'Verification email sent! Please check your inbox and spam folder.' });
+      } else {
+        setErrors({ general: data.error || 'Failed to resend verification email.' });
+      }
+    } catch (error) {
+      setErrors({ general: 'Failed to resend verification email. Please try again.' });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+    setNeedsVerification(false);
 
     if (!validateForm()) return;
 
@@ -44,7 +72,13 @@ export default function LoginForm() {
     if (success) {
       router.push('/dashboard');
     } else {
-      setErrors({ general: 'Invalid email or password. Please check your credentials and try again.' });
+      // Check if it's an email verification error
+      if (authError && authError.includes('verify your email')) {
+        setNeedsVerification(true);
+        setErrors({ general: authError });
+      } else {
+        setErrors({ general: authError || 'Invalid email or password. Please check your credentials and try again.' });
+      }
     }
   };
 
@@ -62,8 +96,24 @@ export default function LoginForm() {
 
       <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
         {errors.general && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
+          <div className={`border px-4 py-3 rounded-md ${
+            errors.general.includes('sent!') 
+              ? 'bg-green-50 border-green-200 text-green-600' 
+              : 'bg-red-50 border-red-200 text-red-600'
+          }`}>
             {errors.general}
+            {needsVerification && (
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  onClick={handleResendVerification}
+                  isLoading={isResending}
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                >
+                  {isResending ? 'Sending...' : 'Resend Verification Email'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

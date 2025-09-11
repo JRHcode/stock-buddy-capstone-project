@@ -13,6 +13,7 @@ interface AuthResponse {
   message: string;
   user: User;
   token?: string;
+  requiresVerification?: boolean;
 }
 
 interface AuthContextType {
@@ -56,17 +57,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(data.error || 'Signup failed');
       }
 
-      // ✅ Only set user if response is successful
-      if (data.user) {
+      // ✅ Only set user and token if email verification is not required
+      if (data.user && !data.requiresVerification) {
         setUser(data.user);
         console.log('User set in context:', data.user);
-      }
-      
-      // ✅ Automatically log user in by storing the token after signup
-      if (data.token) {
-        console.log('Storing token in localStorage after signup:', data.token);
-        localStorage.setItem('token', data.token);
-        setToken(data.token);
+        
+        // Only store token if user doesn't need verification
+        if (data.token) {
+          console.log('Storing token in localStorage after signup:', data.token);
+          localStorage.setItem('token', data.token);
+          setToken(data.token);
+        }
+      } else if (data.requiresVerification) {
+        console.log('User requires email verification, not setting user in context');
       }
 
       return data;

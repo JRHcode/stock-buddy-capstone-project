@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { User } from '@/models/User';
+import { generateVerificationToken, getTokenExpiry } from '@/lib/tokens';
+import { sendVerificationEmail } from '@/lib/emailService';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,23 +34,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create and save the new user
+    // Generate verification token
+    const verificationToken = generateVerificationToken();
+    const tokenExpiry = getTokenExpiry();
+
+    // Create and save the new user (unverified)
     // The pre-save middleware will handle password hashing
     const newUser = new User({
       name,
       email,
       password, // Pass plain text password - pre-save hook will hash it
+      emailVerified: false,
+      verificationToken,
+      verificationTokenExpires: tokenExpiry,
     });
 
     await newUser.save();
 
+    // Send verification email
+    const emailResult = await sendVerificationEmail(email, name, verificationToken);
+    
+    if (!emailResult.success) {
+      console.error('Failed to send verification email:', emailResult.error);
+      // Still continue - user is created, they can request resend later
+    }
+
     // Return a success response without sensitive data
     return NextResponse.json({
-      message: 'User created successfully',
+      message: 'Account created successfully! Please check your email to verify your account before logging in.',
+      requiresVerification: true,
       user: {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        emailVerified: false,
       },
     }, { status: 201 });
 

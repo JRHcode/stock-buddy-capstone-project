@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if email is verified
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        { error: 'Please verify your email before logging in. Check your inbox or request a new verification email.' },
+        { status: 403 }
+      );
+    }
+
     // Create JWT payload
     const payload = {
       id: user._id,

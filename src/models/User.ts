@@ -25,6 +25,10 @@ export interface IUser extends Document {
   name: string;
   email: string;
   password: string;
+  emailVerified: boolean;
+  verificationToken?: string;
+  verificationTokenExpires?: Date;
+  lastResendAt?: Date;
   portfolio: IPortfolioHolding[];
   watchlist: IWatchlistItem[];
   alerts: IAlert[];
@@ -64,6 +68,22 @@ const userSchema: Schema = new mongoose.Schema({
     type: String,
     required: true,
     minlength: 6
+  },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
+    required: false
+  },
+  verificationTokenExpires: {
+    type: Date,
+    required: false
+  },
+  lastResendAt: {
+    type: Date,
+    required: false
   },
   portfolio: {
     type: [{

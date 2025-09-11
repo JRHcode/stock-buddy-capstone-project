@@ -157,6 +157,146 @@ export const sendAlertEmail = async (data: AlertEmailData): Promise<boolean> => 
   }
 };
 
+// Generate verification email HTML template
+const generateVerificationEmailHTML = (userName: string, verificationUrl: string): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Verify Your Stock Buddy Account</title>
+        <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+            .content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; }
+            .footer { background: #374151; color: white; padding: 15px; border-radius: 0 0 8px 8px; text-align: center; }
+            .verify-button { 
+                display: inline-block; 
+                background: #059669; 
+                color: white; 
+                padding: 15px 30px; 
+                text-decoration: none; 
+                border-radius: 8px; 
+                font-weight: bold;
+                margin: 20px 0;
+            }
+            .verify-button:hover { background: #047857; }
+            .welcome-text { font-size: 18px; color: #1f2937; }
+            .important { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 15px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📈 Welcome to Stock Buddy!</h1>
+                <p>Thanks for joining our community of smart investors.</p>
+            </div>
+            
+            <div class="content">
+                <h2>Hello ${userName},</h2>
+                
+                <p class="welcome-text">Welcome to Stock Buddy! We're excited to have you on board.</p>
+                
+                <p>To get started and access all features, please verify your email address by clicking the button below:</p>
+                
+                <div style="text-align: center;">
+                    <a href="${verificationUrl}" class="verify-button">
+                        ✅ Verify Email Address
+                    </a>
+                </div>
+                
+                <div class="important">
+                    <p><strong>⏰ This verification link expires in 24 hours.</strong></p>
+                    <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                    <p style="word-break: break-all; color: #2563eb;">${verificationUrl}</p>
+                </div>
+                
+                <p>Once verified, you'll be able to:</p>
+                <ul>
+                    <li>🔍 Search and track any stock in real-time</li>
+                    <li>📊 Build and manage your portfolio</li>
+                    <li>⚠️ Set up price alerts and notifications</li>
+                    <li>📈 View detailed charts and analysis</li>
+                </ul>
+                
+                <p>If you didn't create this account, please ignore this email.</p>
+            </div>
+            
+            <div class="footer">
+                <p>&copy; 2024 Stock Buddy. All rights reserved.</p>
+                <p><small>This is an automated email. Please do not reply to this message.</small></p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `;
+};
+
+// Generate verification email plain text version
+const generateVerificationEmailText = (userName: string, verificationUrl: string): string => {
+  return `
+WELCOME TO STOCK BUDDY - VERIFY YOUR EMAIL
+
+Hello ${userName},
+
+Welcome to Stock Buddy! We're excited to have you on board.
+
+To get started and access all features, please verify your email address by visiting this link:
+
+${verificationUrl}
+
+This verification link expires in 24 hours.
+
+Once verified, you'll be able to:
+- Search and track any stock in real-time
+- Build and manage your portfolio  
+- Set up price alerts and notifications
+- View detailed charts and analysis
+
+If you didn't create this account, please ignore this email.
+
+---
+Stock Buddy - Your Personal Stock Assistant
+  `.trim();
+};
+
+// Send verification email
+export const sendVerificationEmail = async (
+  email: string, 
+  name: string, 
+  token: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log('Sending verification email to:', email);
+    
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+    const transporter = createTransporter();
+    
+    const mailOptions = {
+      from: {
+        name: 'Stock Buddy',
+        address: process.env.EMAIL_USER!,
+      },
+      to: email,
+      subject: 'Verify your Stock Buddy account',
+      html: generateVerificationEmailHTML(name, verificationUrl),
+      text: generateVerificationEmailText(name, verificationUrl),
+    };
+    
+    const result = await transporter.sendMail(mailOptions);
+    console.log('Verification email sent successfully:', result.messageId);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error occurred' 
+    };
+  }
+};
+
 // Test email configuration
 export const testEmailConfiguration = async (): Promise<boolean> => {
   try {
