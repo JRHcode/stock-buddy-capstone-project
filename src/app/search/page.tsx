@@ -129,7 +129,7 @@ export default function SearchPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pt-24">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-dark-text-primary mb-8 transition-colors">
             Search Stocks

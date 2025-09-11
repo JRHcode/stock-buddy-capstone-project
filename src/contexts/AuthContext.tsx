@@ -20,6 +20,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
+  initializing: boolean;
   error: string | null;
   signup: (name: string, email: string, password: string) => Promise<AuthResponse | null>;
   login: (email: string, password: string) => Promise<AuthResponse | null>;
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const signup = useCallback(async (name: string, email: string, password: string): Promise<AuthResponse | null> => {
@@ -149,34 +151,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch user');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Failed to fetch user: ${response.status} ${response.statusText}. ${errorData.error || ''}`);
       }
 
       const data = await response.json();
+      console.log('getCurrentUser - API response:', data);
       setUser(data.user);
+      setToken(token); // Ensure token is set in state
       return data.user;
     } catch (err) {
       console.error('Failed to get current user:', err);
       localStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
       return null;
     }
   }, []);
 
-  // Add auto-login on mount
+  // Initialize authentication on app start
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    console.log('AuthContext useEffect - storedToken:', !!storedToken, 'user:', !!user);
-    if (storedToken && !user) {
-      console.log('Setting token from localStorage and getting current user');
-      setToken(storedToken);
-      getCurrentUser();
-    }
-  }, [getCurrentUser, user]); 
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem('token');
+      console.log('AuthContext initializing - storedToken:', !!storedToken);
+      
+      if (storedToken) {
+        console.log('Setting token from localStorage and getting current user');
+        setToken(storedToken);
+        await getCurrentUser();
+      }
+      
+      setInitializing(false);
+    };
+
+    initializeAuth();
+  }, []); // Only run once on mount 
 
   const value = {
     user,
     token,
     loading,
+    initializing,
     error,
     signup,
     login,

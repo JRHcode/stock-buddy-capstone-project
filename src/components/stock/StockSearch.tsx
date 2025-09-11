@@ -1,13 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { stockApi, StockQuote } from '@/services/stockApi';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import StockChart from './StockChart';
 import { useWatchlist } from '@/contexts/WatchlistContext';
 
-export default function StockSearch() {
+interface StockSearchProps {
+  onExternalSearch?: string; // External symbol to search for
+}
+
+export default function StockSearch({ onExternalSearch }: StockSearchProps = {}) {
   const [symbol, setSymbol] = useState('');
   const [stockData, setStockData] = useState<StockQuote | null>(null);
   const [loading, setLoading] = useState(false);
@@ -15,17 +19,25 @@ export default function StockSearch() {
   
   const { addToWatchlist, isInWatchlist, isLoading: watchlistLoading } = useWatchlist();
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!symbol.trim()) return;
+  // Handle external search trigger
+  useEffect(() => {
+    if (onExternalSearch) {
+      setSymbol(onExternalSearch);
+      performSearch(onExternalSearch);
+    }
+  }, [onExternalSearch]);
+
+  // Function to perform the actual search
+  const performSearch = async (searchSymbol: string) => {
+    if (!searchSymbol.trim()) return;
 
     setLoading(true);
     setError(null);
     setStockData(null);
 
     try {
-      console.log(`Searching for stock: ${symbol}`);
-      const data = await stockApi.getStockQuote(symbol.trim().toUpperCase());
+      console.log(`Searching for stock: ${searchSymbol}`);
+      const data = await stockApi.getStockQuote(searchSymbol.trim().toUpperCase());
       
       if (data) {
         console.log('Stock data received:', data);
@@ -35,8 +47,8 @@ export default function StockSearch() {
         // Create mock data for demonstration with all required properties
         const basePrice = Math.random() * 200 + 50;
         const mockData: StockQuote = {
-          symbol: symbol.toUpperCase(),
-          name: `${symbol.toUpperCase()} Company`,
+          symbol: searchSymbol.toUpperCase(),
+          name: `${searchSymbol.toUpperCase()} Company`,
           price: basePrice,
           change: (Math.random() - 0.5) * 10,
           changesPercentage: (Math.random() - 0.5) * 5,
@@ -67,6 +79,12 @@ export default function StockSearch() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle form search submission
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await performSearch(symbol);
   };
 
   const handleAddToWatchlist = async () => {

@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     // Create JWT payload
     const payload = {
-      id: user._id,
+      userId: user._id.toString(),
       email: user.email,
       name: user.name,
     };

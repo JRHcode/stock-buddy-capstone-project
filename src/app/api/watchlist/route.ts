@@ -16,7 +16,7 @@ type WatchlistItem = {
 // Helper function to verify JWT token
 const verifyToken = (token: string) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
   } catch {
     throw new Error('Invalid token');
   }
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     console.log('GET Watchlist - User ID:', userId);
     
     const user = await User.findById(userId).select('watchlist');
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const body = await request.json();
     const { symbol, name, price, change, changePercent } = body;
     console.log('POST Watchlist - User ID:', userId, 'Data:', { symbol, name, price, change, changePercent });
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const body = await request.json();
     const { stocks } = body;
 
@@ -194,7 +194,7 @@ export async function DELETE(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const url = new URL(request.url);
     const symbol = url.searchParams.get('symbol');
 

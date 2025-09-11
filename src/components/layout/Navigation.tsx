@@ -12,10 +12,22 @@ export default function Navigation() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // Avoid hydration mismatch
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Handle scroll events for opacity change
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleLogout = () => {
@@ -28,7 +40,9 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-white dark:bg-dark-surface shadow-sm dark:shadow-lg border-b dark:border-dark-border transition-colors">
+    <nav className={`fixed top-0 left-0 right-0 z-50 bg-white dark:bg-dark-surface shadow-sm dark:shadow-lg border-b dark:border-dark-border transition-all duration-300 ${
+      isScrolled ? 'opacity-75' : 'opacity-100'
+    }`}>
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -42,38 +56,38 @@ export default function Navigation() {
           <div className="hidden md:flex items-center space-x-8">
             <Link
               href="/dashboard"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               Dashboard
             </Link>
             
             <Link
               href="/portfolio"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               Portfolio
             </Link>
             <Link
               href="/watchlist"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               Watchlist
             </Link>
             <Link
               href="/alerts"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               Alerts
             </Link>
             <Link
               href="/news"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               News
             </Link>
             <Link
               href="/about"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               About
             </Link>
@@ -86,7 +100,7 @@ export default function Navigation() {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="p-2 rounded-md text-gray-500 dark:text-dark-text-secondary hover:text-gray-700 dark:hover:text-dark-text-primary hover:bg-gray-100 dark:hover:bg-dark-bg/50 transition-colors"
+                className="p-2 rounded-md text-gray-500 dark:text-dark-text-secondary hover:text-gray-700 dark:hover:text-dark-text-primary hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors"
                 aria-label="Toggle dark mode"
               >
                 {theme === 'dark' ? (
@@ -104,7 +118,7 @@ export default function Navigation() {
             {/* Profile Link */}
             <Link
               href="/profile"
-              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-dark-bg/50"
+              className="px-3 py-2 rounded-md text-sm font-medium transition-colors text-gray-700 dark:text-dark-text-secondary hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-dark-bg/50"
             >
               {user?.name || 'Profile'}
             </Link>
@@ -122,7 +136,7 @@ export default function Navigation() {
 
           {/* Mobile menu button */}
           <div className="md:hidden">
-            <button type="button" className="p-2 rounded-md text-gray-500 dark:text-dark-text-secondary hover:text-gray-700 dark:hover:text-dark-text-primary hover:bg-gray-100 dark:hover:bg-dark-bg/50 transition-colors">
+            <button type="button" className="p-2 rounded-md text-gray-500 dark:text-dark-text-secondary hover:text-gray-700 dark:hover:text-dark-text-primary hover:bg-gray-200 dark:hover:bg-dark-bg/50 transition-colors">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>

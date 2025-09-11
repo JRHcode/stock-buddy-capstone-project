@@ -28,6 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       user: {
         id: user._id.toString(),
+        name: user.name,
         email: user.email,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt

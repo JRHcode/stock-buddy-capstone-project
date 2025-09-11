@@ -22,6 +22,8 @@ interface DropdownWatchlistProps {
   isLoading?: boolean;
   onAddToWatchlist?: (stock: GenericStock) => void;
   onAddToHoldings?: (stock: GenericStock) => void;
+  onSymbolClick?: (symbol: string) => void; // New callback for symbol clicks
+  showMarketCap?: boolean; // Whether to display market cap values
   icon?: string; // Optional emoji or icon to display next to title
 }
 
@@ -32,6 +34,8 @@ export default function DropdownWatchlist({
   isLoading = false,
   onAddToWatchlist,
   onAddToHoldings,
+  onSymbolClick,
+  showMarketCap = true,
   icon
 }: DropdownWatchlistProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -122,10 +126,23 @@ export default function DropdownWatchlist({
                         </div>
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-gray-900 dark:text-dark-text-primary">
-                              {String(stock.symbol)}
-                            </span>
-                            {(stock.marketCap && stock.marketCap > 0) ? (
+                            {onSymbolClick ? (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSymbolClick(stock.symbol);
+                                }}
+                                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+                                title="Click to search for this stock"
+                              >
+                                {String(stock.symbol)}
+                              </button>
+                            ) : (
+                              <span className="font-semibold text-gray-900 dark:text-dark-text-primary">
+                                {String(stock.symbol)}
+                              </span>
+                            )}
+                            {(showMarketCap && stock.marketCap && stock.marketCap > 0) ? (
                               <span className="text-xs text-gray-500 dark:text-dark-text-secondary">
                                 {formatMarketCap(stock.marketCap)}
                               </span>

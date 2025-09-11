@@ -53,6 +53,9 @@ export default function DashboardPage() {
   const [weekHighStocks, setWeekHighStocks] = useState<WeekHighStock[]>([]);
   const [isLoadingWeekHighs, setIsLoadingWeekHighs] = useState(true);
 
+  // Search state for triggering external stock searches
+  const [searchSymbol, setSearchSymbol] = useState<string>('');
+
   // Load Top 30 Market Cap data
   useEffect(() => {
     const loadTop30Data = async () => {
@@ -238,6 +241,11 @@ export default function DashboardPage() {
     }
   };
 
+  // Handler for symbol clicks - triggers stock search
+  const handleSymbolClick = (symbol: string) => {
+    console.log(`Symbol clicked: ${symbol}`);
+    setSearchSymbol(symbol);
+  };
 
   // Calculate portfolio stats
   const totalValue = getTotalValue();
@@ -255,7 +263,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors">
       <Navigation />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pt-24">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-dark-text-primary mb-8 transition-colors">
             Welcome back, {user?.name}!
@@ -308,19 +316,21 @@ export default function DashboardPage() {
           {/* Stock Search Section */}
           <div className="bg-white dark:bg-dark-surface rounded-lg shadow dark:shadow-lg border dark:border-dark-border p-6 mb-8 transition-colors">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-dark-text-primary mb-4 transition-colors">Search Stocks</h2>
-            <StockSearch />
+            <StockSearch onExternalSearch={searchSymbol} />
           </div>
 
-          {/* Top 30 Market Cap Watchlist */}
+          {/* S&P 30 Market Cap Watchlist */}
           <div className="flex justify-center mb-8">
             <div className="w-full max-w-4xl">
               <DropdownWatchlist
-                title="Market 30"
-                tooltip="These are the 30 largest companies in the S&P 500 by market cap."
+                title="S&P 30"
+                tooltip="The 30 largest companies in the S&P 500 by market cap. Click on the symbol to see the chart."
                 stocks={top30Stocks}
                 isLoading={isLoadingTop30}
                 onAddToWatchlist={handleStockAddToWatchlist}
                 onAddToHoldings={handleStockAddToHoldings}
+                onSymbolClick={handleSymbolClick}
+                showMarketCap={false}
               />
             </div>
           </div>
@@ -330,11 +340,13 @@ export default function DashboardPage() {
             <div className="w-full max-w-4xl">
               <DropdownWatchlist
                 title="52 Week Highs"
-                tooltip="Stocks within 5% of their 52-week high price, with volume ≥100,000 and current price ≥$25. Updated with real-time Yahoo Finance data."
+                tooltip="Stocks within 5% of their 52-week high price, with volume ≥100,000 and current price ≥$25. These stocks are bullish."
                 stocks={weekHighStocks}
                 isLoading={isLoadingWeekHighs}
                 onAddToWatchlist={handleStockAddToWatchlist}
                 onAddToHoldings={handleStockAddToHoldings}
+                onSymbolClick={handleSymbolClick}
+                showMarketCap={true}
                 icon="📈"
               />
             </div>

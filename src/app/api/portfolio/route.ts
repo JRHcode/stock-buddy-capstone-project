@@ -15,7 +15,7 @@ type PortfolioHolding = {
 // Helper function to verify JWT token
 const verifyToken = (token: string) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
   } catch {
     throw new Error('Invalid token');
   }
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     
     const user = await User.findById(userId).select('portfolio');
     if (!user) {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const body = await request.json();
     const { symbol, name, shares, avgPrice, purchaseDate } = body;
 
@@ -138,7 +138,7 @@ export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const body = await request.json();
     const { holdings } = body;
 
@@ -193,7 +193,7 @@ export async function DELETE(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const url = new URL(request.url);
     const symbol = url.searchParams.get('symbol');
 

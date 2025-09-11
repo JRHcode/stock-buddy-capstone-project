@@ -17,7 +17,7 @@ type Alert = {
 // Helper function to verify JWT token
 const verifyToken = (token: string) => {
   try {
-    return jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    return jwt.verify(token, process.env.JWT_SECRET!) as { userId: string };
   } catch {
     throw new Error('Invalid token');
   }
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     console.log('GET Alerts - User ID:', userId);
     
     const user = await User.findById(userId).select('alerts');
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const body = await request.json();
     const { symbol, condition, targetValue, currentValue } = body;
     console.log('POST Alerts - User ID:', userId, 'Data:', { symbol, condition, targetValue, currentValue });
@@ -133,7 +133,7 @@ export async function PUT(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const body = await request.json();
     const { alerts } = body;
 
@@ -192,7 +192,7 @@ export async function DELETE(request: NextRequest) {
   try {
     await connectToDatabase();
     
-    const { id: userId } = getUserFromToken(request);
+    const { userId } = getUserFromToken(request);
     const url = new URL(request.url);
     const alertId = url.searchParams.get('id');
 
