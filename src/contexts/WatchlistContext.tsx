@@ -33,6 +33,50 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
     return user ? `stockBuddyWatchlist_${user.id}` : 'stockBuddyWatchlist_guest';
   };
 
+  // Fetch real-time prices for watchlist stocks
+  const fetchRealTimePrices = async (stocks: WatchlistStock[]): Promise<WatchlistStock[]> => {
+    if (stocks.length === 0) return stocks;
+
+    try {
+      const symbols = stocks.map(s => s.symbol);
+      console.log('Fetching real-time prices for:', symbols);
+
+      const response = await fetch('/api/stocks/batch-quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbols }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch real-time prices');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Update stocks with real prices
+        return stocks.map(stock => {
+          const realData = result.data[stock.symbol];
+          if (realData) {
+            return {
+              ...stock,
+              price: realData.price,
+              change: realData.change,
+              changePercent: realData.changePercent
+            };
+          }
+          return stock;
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching real-time prices:', error);
+    }
+
+    return stocks;
+  };
+
   // Helper function to make authenticated API requests
   const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
     if (!token) {
@@ -79,8 +123,12 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
         }));
         
         console.log('Processed watchlist stocks:', dbStocks);
-        console.log('Setting watchlist with', dbStocks.length, 'stocks');
-        setWatchlist(dbStocks);
+        
+        // Fetch real-time prices for the stocks
+        const stocksWithRealPrices = await fetchRealTimePrices(dbStocks);
+        
+        console.log('Setting watchlist with', stocksWithRealPrices.length, 'stocks with real prices');
+        setWatchlist(stocksWithRealPrices);
         
         // Update localStorage as backup
         // const storageKey = getStorageKey();
@@ -166,6 +214,25 @@ export function WatchlistProvider({ children }: { children: React.ReactNode }) {
       console.log('User or token missing - user:', !!user, 'token:', !!token);
     }
   }, [user, token]); // Reload when user or token changes
+
+  // Periodically update prices (every 30 seconds)
+  useEffect(() => {
+    if (watchlist.length === 0) return;
+
+    const updatePrices = async () => {
+      console.log('Updating watchlist prices...');
+      const updatedStocks = await fetchRealTimePrices(watchlist);
+      setWatchlist(updatedStocks);
+    };
+
+    // Update immediately on mount
+    updatePrices();
+
+    // Then update every 30 seconds
+    const interval = setInterval(updatePrices, 30000);
+
+    return () => clearInterval(interval);
+  }, [watchlist.length]); // Only re-run if watchlist length changes
 
   // Save watchlist to localStorage and database whenever it changes
   useEffect(() => {

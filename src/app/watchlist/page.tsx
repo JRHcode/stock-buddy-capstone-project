@@ -52,16 +52,35 @@ export default function WatchlistPage() {
     setIsAdding(true);
     
     try {
-      // Create mock stock data for the symbol
-      const mockStock = {
+      // Fetch real stock data for the symbol
+      const response = await fetch('/api/stocks/batch-quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbols: [newSymbol.toUpperCase()] }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch stock data');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success || !result.data[newSymbol.toUpperCase()]) {
+        throw new Error(`Stock symbol "${newSymbol.toUpperCase()}" not found`);
+      }
+
+      const stockData = result.data[newSymbol.toUpperCase()];
+      const realStock = {
         symbol: newSymbol.toUpperCase(),
-        name: `${newSymbol.toUpperCase()} Company`,
-        price: Math.random() * 200 + 50,
-        change: (Math.random() - 0.5) * 10,
-        changePercent: (Math.random() - 0.5) * 5
+        name: `${newSymbol.toUpperCase()} Company`, // We'll get real name from quote API later
+        price: stockData.price,
+        change: stockData.change,
+        changePercent: stockData.changePercent
       };
       
-      await addToWatchlist(mockStock);
+      await addToWatchlist(realStock);
       setNewSymbol('');
       
     } catch (err) {
@@ -84,7 +103,7 @@ export default function WatchlistPage() {
 
   const handleAddToHoldings = (stock: any) => {
     setSelectedStock(stock);
-    setHoldingForm({ shares: '', price: stock.price.toString() });
+    setHoldingForm({ shares: '', price: stock.price.toFixed(2) });
     setShowHoldingModal(true);
   };
 

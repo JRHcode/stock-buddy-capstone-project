@@ -27,13 +27,13 @@ const getUserFromToken = (request: NextRequest) => {
 // DELETE - Remove stock from watchlist by symbol
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { symbol: string } }
+  { params }: { params: Promise<{ symbol: string }> }
 ) {
   try {
     await connectToDatabase();
     
     const { userId } = getUserFromToken(request);
-    const { symbol } = params;
+    const { symbol } = await params;
 
     if (!symbol) {
       return NextResponse.json(

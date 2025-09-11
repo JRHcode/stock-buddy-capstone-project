@@ -56,15 +56,32 @@ export default function DashboardPage() {
   // Search state for triggering external stock searches
   const [searchSymbol, setSearchSymbol] = useState<string>('');
 
-  // Load Top 30 Market Cap data
+  // Load Top 30 Market Cap data from real API
   useEffect(() => {
     const loadTop30Data = async () => {
       try {
         setIsLoadingTop30(true);
-        const data = await getTop30MarketCap();
-        setTop30Stocks(data);
+        const response = await fetch('/api/market-data/sp30');
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('S&P 30 data received:', result.data);
+          setTop30Stocks(result.data);
+        } else {
+          console.error('Failed to load S&P 30:', result.error);
+          // Fall back to static data if API fails
+          const fallbackData = await getTop30MarketCap();
+          setTop30Stocks(fallbackData);
+        }
       } catch (error) {
-        console.error('Error loading Top 30 Market Cap data:', error);
+        console.error('Error loading S&P 30 data:', error);
+        // Fall back to static data on error
+        try {
+          const fallbackData = await getTop30MarketCap();
+          setTop30Stocks(fallbackData);
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+        }
       } finally {
         setIsLoadingTop30(false);
       }

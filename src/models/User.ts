@@ -29,6 +29,8 @@ export interface IUser extends Document {
   verificationToken?: string;
   verificationTokenExpires?: Date;
   lastResendAt?: Date;
+  resetPasswordToken?: string;
+  resetPasswordExpiry?: Date;
   portfolio: IPortfolioHolding[];
   watchlist: IWatchlistItem[];
   alerts: IAlert[];
@@ -82,6 +84,14 @@ const userSchema: Schema = new mongoose.Schema({
     required: false
   },
   lastResendAt: {
+    type: Date,
+    required: false
+  },
+  resetPasswordToken: {
+    type: String,
+    required: false
+  },
+  resetPasswordExpiry: {
     type: Date,
     required: false
   },

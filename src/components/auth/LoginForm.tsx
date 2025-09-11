@@ -12,7 +12,9 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string; general?: string }>({});
   const [needsVerification, setNeedsVerification] = useState(false);
+  const [showResetButton, setShowResetButton] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { login, loading, error: authError } = useAuthContext();
   const router = useRouter();
 
@@ -60,10 +62,42 @@ export default function LoginForm() {
     }
   };
 
+  const handlePasswordReset = async () => {
+    if (!email) {
+      setErrors({ general: 'Please enter your email address first.' });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    setErrors({});
+    
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setErrors({ general: 'Password reset email sent! Please check your inbox and spam folder.' });
+        setShowResetButton(false);
+      } else {
+        setErrors({ general: data.error || 'Failed to send password reset email.' });
+      }
+    } catch (error) {
+      setErrors({ general: 'Failed to send password reset email. Please try again.' });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     setNeedsVerification(false);
+    setShowResetButton(false);
 
     if (!validateForm()) return;
 
@@ -78,6 +112,7 @@ export default function LoginForm() {
         setErrors({ general: authError });
       } else {
         setErrors({ general: authError || 'Invalid email or password. Please check your credentials and try again.' });
+        setShowResetButton(true); // Show reset button on login failure
       }
     }
   };
@@ -144,6 +179,18 @@ export default function LoginForm() {
         >
           Sign In
         </Button>
+
+        {showResetButton && (
+          <Button
+            type="button"
+            onClick={handlePasswordReset}
+            isLoading={isResettingPassword}
+            variant="outline"
+            className="w-full"
+          >
+            {isResettingPassword ? 'Sending Reset Email...' : 'Reset Password'}
+          </Button>
+        )}
 
         <div className="text-center">
           <Link href="/" className="text-sm text-blue-600 hover:text-blue-500">

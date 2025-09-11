@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       sharesOutstanding: quote.sharesOutstanding || 0,
       exchange: quote.fullExchangeName || quote.exchange || 'N/A',
       avgVolume: quote.averageDailyVolume3Month || quote.averageDailyVolume10Day || 0,
-      earningsAnnouncement: quote.earningsTimestamp ? new Date(quote.earningsTimestamp * 1000).toISOString().split('T')[0] : '',
+      earningsAnnouncement: quote.earningsTimestamp ? new Date(Number(quote.earningsTimestamp) * 1000).toISOString().split('T')[0] : '',
       timestamp: Math.floor(Date.now() / 1000),
       // Additional fields from profile - these will be populated if available
       industry: (quote as any).industry || 'N/A',

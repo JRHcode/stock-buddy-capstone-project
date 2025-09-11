@@ -38,6 +38,56 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
     return user ? `stockBuddyPortfolio_${user.id}` : 'stockBuddyPortfolio_guest';
   };
 
+  // Fetch real-time prices for portfolio holdings
+  const fetchRealTimePrices = async (holdings: PortfolioHolding[]): Promise<PortfolioHolding[]> => {
+    if (holdings.length === 0) return holdings;
+
+    try {
+      const symbols = holdings.map(h => h.symbol);
+      console.log('Fetching real-time prices for portfolio:', symbols);
+
+      const response = await fetch('/api/stocks/batch-quote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbols }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch real-time prices');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        // Update holdings with real prices and recalculate metrics
+        return holdings.map(holding => {
+          const realData = result.data[holding.symbol];
+          if (realData) {
+            const currentPrice = realData.price;
+            const totalValue = holding.shares * currentPrice;
+            const gainLoss = totalValue - (holding.shares * holding.avgPrice);
+            const gainLossPercent = (gainLoss / (holding.shares * holding.avgPrice)) * 100;
+
+            return {
+              ...holding,
+              currentPrice,
+              totalValue,
+              gainLoss,
+              gainLossPercent
+            };
+          }
+          return holding;
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching real-time portfolio prices:', error);
+    }
+
+    return holdings;
+  };
+
   // Helper function to make authenticated API requests
   const makeAuthenticatedRequest = async (url: string, options: RequestInit = {}) => {
     if (!token) {
@@ -103,8 +153,12 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
         });
         
         console.log('Processed portfolio holdings:', dbHoldings);
-        console.log('Setting portfolio with', dbHoldings.length, 'holdings');
-        setHoldings(dbHoldings);
+        
+        // Fetch real-time prices for the holdings
+        const holdingsWithRealPrices = await fetchRealTimePrices(dbHoldings);
+        
+        console.log('Setting portfolio with', holdingsWithRealPrices.length, 'holdings with real prices');
+        setHoldings(holdingsWithRealPrices);
         
         // Update localStorage as backup
         // const storageKey = getStorageKey();
@@ -178,6 +232,25 @@ export function PortfolioProvider({ children }: { children: React.ReactNode }) {
       console.log('User or token missing - user:', !!user, 'token:', !!token);
     }
   }, [user, token]); // Reload when user or token changes
+
+  // Periodically update prices (every 30 seconds)
+  useEffect(() => {
+    if (holdings.length === 0) return;
+
+    const updatePrices = async () => {
+      console.log('Updating portfolio prices...');
+      const updatedHoldings = await fetchRealTimePrices(holdings);
+      setHoldings(updatedHoldings);
+    };
+
+    // Update immediately on mount
+    updatePrices();
+
+    // Then update every 30 seconds
+    const interval = setInterval(updatePrices, 30000);
+
+    return () => clearInterval(interval);
+  }, [holdings.length]); // Only re-run if holdings length changes
 
   // Save portfolio to localStorage and database whenever it changes
   useEffect(() => {
