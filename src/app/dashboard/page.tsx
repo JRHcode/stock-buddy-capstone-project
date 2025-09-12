@@ -347,7 +347,7 @@ export default function DashboardPage() {
                 onAddToWatchlist={handleStockAddToWatchlist}
                 onAddToHoldings={handleStockAddToHoldings}
                 onSymbolClick={handleSymbolClick}
-                showMarketCap={false}
+                showMarketCap={true}
               />
             </div>
           </div>

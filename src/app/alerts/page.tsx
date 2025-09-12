@@ -218,8 +218,8 @@ export default function AlertsPage() {
           </p>
         </div>
 
-        {/* Testing Section */}
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-6 border border-yellow-200 dark:border-yellow-800">
+        {/* Testing Section - Commented out for production */}
+        {/* <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 mb-6 border border-yellow-200 dark:border-yellow-800">
           <h3 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-3">
             🧪 Testing & Development
           </h3>
@@ -228,7 +228,7 @@ export default function AlertsPage() {
           </p>
           
           {/* First row: Core functionality tests */}
-          <div className="flex flex-wrap gap-3 mb-3">
+          {/* <div className="flex flex-wrap gap-3 mb-3">
             <Button
               onClick={testEmailConfiguration}
               disabled={testingAlert}
@@ -265,10 +265,10 @@ export default function AlertsPage() {
             >
               {testingAlert ? 'Clearing...' : 'Clear Price Cache'}
             </Button>
-          </div>
+          </div> */}
           
           {/* Second row: Alert trigger tests */}
-          {alerts.length > 0 && (
+          {/* {alerts.length > 0 && (
             <div>
               <p className="text-yellow-600 dark:text-yellow-400 text-xs mb-2">Trigger specific alerts:</p>
               <div className="flex gap-2">
@@ -287,7 +287,7 @@ export default function AlertsPage() {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
 
         {/* Add Alert Button */}
         <div className="flex justify-between items-center mb-6">

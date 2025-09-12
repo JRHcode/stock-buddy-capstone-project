@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       name: quote.longName || quote.shortName || `${symbol.toUpperCase()} Company`,
       price: quote.regularMarketPrice || 0,
       change: quote.regularMarketChange || 0,
-      changesPercentage: quote.regularMarketChangePercent ? quote.regularMarketChangePercent * 100 : 0,
+      changesPercentage: quote.regularMarketChangePercent || 0,
       volume: quote.regularMarketVolume || 0,
       marketCap: quote.marketCap || 0,
       pe: quote.trailingPE || quote.forwardPE || 0,

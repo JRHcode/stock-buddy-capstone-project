@@ -28,10 +28,9 @@ export default function AboutPage() {
               Our Mission
             </h2>
             <p className="text-gray-600 dark:text-dark-text-secondary leading-relaxed transition-colors">
-              Stock Buddy was created to democratize access to financial information and make investment tracking 
-              simple and accessible for everyone. Whether you're a seasoned investor or just starting your 
-              financial journey, our platform provides the tools and insights you need to make informed decisions 
-              about your investments.
+              Stock Buddy was created to help retail traders like you manage their portfolios in an elegant way. 
+              Our goal is to make trading easy and fun. So we created a simple and accessible portfolio management site. 
+              Whether you're a seasoned investor or just starting your retail trading journey, Stock Buddy has something for everyone.
             </p>
           </div>
 
@@ -43,7 +42,7 @@ export default function AboutPage() {
                 Real-time Market Data
               </h3>
               <p className="text-gray-600 dark:text-dark-text-secondary transition-colors">
-                Access up-to-date stock prices, market trends, and financial data to stay informed about your investments.
+                Access up-to-date stock prices, financial data and news to stay informed about your investments.
               </p>
             </div>
 
@@ -64,6 +63,9 @@ export default function AboutPage() {
               </h3>
               <p className="text-gray-600 dark:text-dark-text-secondary transition-colors">
                 Get personalized analysis to help you navigate the financial markets.
+                <br /><br />
+                Premium users have access to additional features such as fundamental and technical analysis, advanced
+                pre-defined stock lists and features to easily identify strong market trends.
               </p>
             </div>
 

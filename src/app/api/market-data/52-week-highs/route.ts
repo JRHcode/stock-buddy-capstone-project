@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStockPrice } from '@/lib/stockPriceService';
 import { WeekHighStock, weekHigh52Stocks } from '@/data/52WeekHighs';
+import yahooFinance from 'yahoo-finance2';
 
 // Extended Yahoo Finance API for fetching detailed stock data including 52-week highs
 const fetchStockDetails = async (symbol: string): Promise<any> => {
@@ -23,45 +24,39 @@ const fetchStockDetails = async (symbol: string): Promise<any> => {
   }
 };
 
-// Parse Yahoo Finance response for 52-week high data
-const parseStockDetails = (symbol: string, data: any): Partial<WeekHighStock> | null => {
+// Get stock data using yahoo-finance2 library (same as quote API)
+const getStockWithHighData = async (symbol: string): Promise<Partial<WeekHighStock> | null> => {
   try {
-    if (!data.chart?.result?.[0]) {
-      return null;
-    }
-
-    const result = data.chart.result[0];
-    const meta = result.meta;
+    // Get basic quote data using the same method as the working quote API
+    const quote = await yahooFinance.quote(symbol.toUpperCase());
     
-    if (!meta) {
+    if (!quote) {
       return null;
     }
 
-    const currentPrice = meta.regularMarketPrice || meta.previousClose;
-    const previousClose = meta.previousClose;
-    const fiftyTwoWeekHigh = meta.fiftyTwoWeekHigh;
-    const fiftyTwoWeekLow = meta.fiftyTwoWeekLow;
-    const averageVolume = meta.averageDailyVolume10Day;
-    const marketCap = meta.marketCap;
-    const volume = meta.regularMarketVolume;
+    const currentPrice = quote.regularMarketPrice || 0;
+    const previousClose = quote.regularMarketPreviousClose || currentPrice;
+    const change = quote.regularMarketChange || 0;
+    const changePercent = quote.regularMarketChangePercent || 0;
+    const fiftyTwoWeekHigh = quote.fiftyTwoWeekHigh;
+    const marketCap = quote.marketCap || 0;
+    const volume = quote.regularMarketVolume || 0;
     
     if (!currentPrice || !fiftyTwoWeekHigh) {
       return null;
     }
 
-    const change = previousClose ? currentPrice - previousClose : 0;
-    const changePercent = previousClose ? (change / previousClose) * 100 : 0;
     const percentFromHigh = ((currentPrice - fiftyTwoWeekHigh) / fiftyTwoWeekHigh) * 100;
     
-    console.log(`${symbol} parsed:`, {
+    console.log(`${symbol} DEBUG - Using yahoo-finance2 quote data:`, {
       currentPrice,
       previousClose,
       change,
       changePercent,
+      fiftyTwoWeekHigh,
       percentFromHigh,
       marketCap,
-      volume,
-      averageVolume
+      volume
     });
 
     return {
@@ -71,14 +66,13 @@ const parseStockDetails = (symbol: string, data: any): Partial<WeekHighStock> | 
       changePercent: Math.round(changePercent * 100) / 100,
       weekHigh52: Math.round(fiftyTwoWeekHigh * 100) / 100,
       percentFromHigh: Math.round(percentFromHigh * 100) / 100,
-      avgVolume: averageVolume || 0,
+      avgVolume: 0, // Not available in basic quote
       marketCap: marketCap || 0,
       volume: volume || 0,
-      // Remove option volume as it's not available from Yahoo Finance
       optionVolume: 0
     };
   } catch (error) {
-    console.error(`Error parsing stock details for ${symbol}:`, error);
+    console.error(`Error getting stock data for ${symbol}:`, error);
     return null;
   }
 };
@@ -97,18 +91,15 @@ const get52WeekHighStocks = async (): Promise<WeekHighStock[]> => {
     console.log('Fetching 52-week high data for', candidateSymbols.length, 'symbols');
 
     const stockPromises = candidateSymbols.map(async (symbol) => {
-      const details = await fetchStockDetails(symbol);
-      if (!details) return null;
-
-      const parsed = parseStockDetails(symbol, details);
-      if (!parsed) return null;
+      const stockData = await getStockWithHighData(symbol);
+      if (!stockData) return null;
 
       // Get the company name from our static data or use a default
       const knownStock = weekHigh52Stocks.find(s => s.symbol === symbol);
       const name = knownStock?.name || `${symbol} Company`;
 
       return {
-        ...parsed,
+        ...stockData,
         name,
         symbol
       } as WeekHighStock;

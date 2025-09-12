@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MarketCapStock } from '@/data/top30MarketCap';
+import yahooFinance from 'yahoo-finance2';
 
 // Top 30 S&P 500 companies by market cap (symbols)
 const SP30_SYMBOLS = [
@@ -45,46 +46,32 @@ const COMPANY_NAMES: { [key: string]: string } = {
   'CRM': 'Salesforce Inc.'
 };
 
-// Fetch stock data from Yahoo Finance
+// Fetch stock data using yahoo-finance2 library (same as 52 Week Highs)
 const fetchStockData = async (symbol: string): Promise<MarketCapStock | null> => {
   try {
     // Yahoo Finance uses BRK-B instead of BRK.B
     const yahooSymbol = symbol === 'BRK.B' ? 'BRK-B' : symbol;
     
-    // Use the same endpoint as 52-week highs for consistency
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?range=1d&interval=1d`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      },
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch ${symbol}: ${response.status}`);
+    // Use yahoo-finance2 library to get quote data
+    const quote = await yahooFinance.quote(yahooSymbol);
+    
+    if (!quote) {
+      console.error(`No quote data for ${symbol}`);
       return null;
     }
 
-    const data = await response.json();
-    
-    if (!data.chart?.result?.[0]?.meta) {
-      console.error(`No data for ${symbol}`);
-      return null;
-    }
-
-    const meta = data.chart.result[0].meta;
-    const currentPrice = meta.regularMarketPrice || meta.previousClose || 0;
-    const previousClose = meta.previousClose || meta.chartPreviousClose || currentPrice;
-    const marketCap = meta.marketCap || 0;
-    
-    const change = currentPrice - previousClose;
-    const changePercent = previousClose !== 0 ? (change / previousClose) * 100 : 0;
+    const currentPrice = quote.regularMarketPrice || 0;
+    const previousClose = quote.regularMarketPreviousClose || currentPrice;
+    const change = quote.regularMarketChange || 0;
+    const changePercent = quote.regularMarketChangePercent || 0;
+    const marketCap = quote.marketCap || 0;
 
     console.log(`${symbol}: price=${currentPrice}, marketCap=${marketCap}, change=${change}`);
 
     return {
       symbol: symbol.toUpperCase(), // Keep original symbol (BRK.B not BRK-B)
       name: COMPANY_NAMES[symbol] || `${symbol} Company`,
-      marketCap: marketCap > 0 ? Math.round(marketCap / 1000000000) : 0, // Convert to billions
+      marketCap: marketCap || 0, // Keep raw value for proper formatting
       price: Math.round(currentPrice * 100) / 100,
       change: Math.round(change * 100) / 100,
       changePercent: Math.round(changePercent * 100) / 100

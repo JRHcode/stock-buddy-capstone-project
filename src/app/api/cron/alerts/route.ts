@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     console.log('Cron job triggered - checking all alerts');
     
     // Verify this is a legitimate cron request
-    // In production, you'd want to add authentication here
+    // In production, I'll add authentication here
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
     
