@@ -3,6 +3,55 @@ import { getStockPrice } from '@/lib/stockPriceService';
 import { WeekHighStock, weekHigh52Stocks } from '@/data/52WeekHighs';
 import yahooFinance from 'yahoo-finance2';
 
+// Parse Yahoo Finance response for 52-week high data
+const parseStockDetails = (symbol: string, data: any): Partial<WeekHighStock> | null => {
+  try {
+    if (!data.chart?.result?.[0]) {
+      console.warn(`No data found for symbol: ${symbol}`);
+      return null;
+    }
+
+    const result = data.chart.result[0];
+    const meta = result.meta;
+    
+    if (!meta) {
+      console.warn(`No meta data found for symbol: ${symbol}`);
+      return null;
+    }
+
+    const currentPrice = meta.regularMarketPrice || meta.previousClose;
+    const previousClose = meta.previousClose;
+    const fiftyTwoWeekHigh = meta.fiftyTwoWeekHigh;
+    const volume = meta.regularMarketVolume || 0;
+    const marketCap = meta.marketCap || 0;
+    
+    if (!currentPrice || !fiftyTwoWeekHigh || !previousClose) {
+      console.warn(`Missing required price data for symbol: ${symbol}`);
+      return null;
+    }
+
+    const change = currentPrice - previousClose;
+    const changePercent = (change / previousClose) * 100;
+    const percentFromHigh = ((currentPrice - fiftyTwoWeekHigh) / fiftyTwoWeekHigh) * 100;
+
+    return {
+      symbol: symbol.toUpperCase(),
+      price: Math.round(currentPrice * 100) / 100,
+      change: Math.round(change * 100) / 100,
+      changePercent: Math.round(changePercent * 100) / 100,
+      weekHigh52: Math.round(fiftyTwoWeekHigh * 100) / 100,
+      percentFromHigh: Math.round(percentFromHigh * 100) / 100,
+      volume: volume,
+      marketCap: marketCap,
+      avgVolume: 0, // Not available in this endpoint
+      optionVolume: 0 // Not available in this endpoint
+    };
+  } catch (error) {
+    console.error(`Error parsing stock details for ${symbol}:`, error);
+    return null;
+  }
+};
+
 // Extended Yahoo Finance API for fetching detailed stock data including 52-week highs
 const fetchStockDetails = async (symbol: string): Promise<any> => {
   try {
